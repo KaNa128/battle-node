@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "potion_heal",
+      "name": "金创药",
+      "heal": 20,
+      "usesPerBattle": 2,
+      "animDurationMs": 400
+    }
+  ]
+}

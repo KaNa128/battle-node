@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>战斗节点 · 逻辑测试</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #14100d;
+        color: #f1e6d6;
+        font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      }
+      h1 {
+        font-size: 20px;
+        color: #f0cc8c;
+        letter-spacing: 0.08em;
+      }
+      .summary {
+        margin: 14px 0;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(214, 168, 92, 0.3);
+      }
+      .summary.is-pass {
+        color: #9fe6b2;
+        border-color: rgba(112, 196, 133, 0.5);
+      }
+      .summary.is-fail {
+        color: #ff9d84;
+        border-color: rgba(201, 85, 63, 0.6);
+      }
+      .case {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 13px;
+      }
+      .case__title {
+        min-width: 0;
+      }
+      .case__status {
+        white-space: nowrap;
+      }
+      .case.is-pass .case__status {
+        color: #9fe6b2;
+      }
+      .case.is-fail {
+        background: rgba(201, 85, 63, 0.12);
+      }
+      .case.is-fail .case__status {
+        color: #ff9d84;
+        white-space: normal;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>战斗节点 · 逻辑测试</h1>
+    <div id="results"></div>
+    <script type="module">
+      import { runAll } from './runner.js';
+      import './config-validation.test.js';
+      import './rage.test.js';
+      import './combo.test.js';
+      import './turn-order.test.js';
+      import './panel.test.js';
+      import './engine.test.js';
+
+      runAll(document.getElementById('results'));
+    </script>
+  </body>
+</html>

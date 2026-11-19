@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "bosses": [
+    {
+      "id": "boss_01",
+      "name": "无名武者",
+      "maxHp": 100,
+      "maxRage": 30,
+      "art": {
+        "idle": "assets/gifs/bosses/boss_01_idle.gif",
+        "attack": "assets/gifs/bosses/boss_01_attack.gif",
+        "hurt": "assets/gifs/bosses/boss_01_hurt.gif",
+        "break": "assets/gifs/bosses/boss_01_break.gif"
+      },
+      "phases": [
+        {
+          "id": "phase_1",
+          "hpRange": { "min": 51, "max": 100 },
+          "opsPerTurn": { "min": 2, "max": 3 },
+          "actionWeights": [
+            { "actionId": "b_slash", "weight": 70 },
+            { "actionId": "b_heavy", "weight": 30 }
+          ],
+          "comboIds": []
+        },
+        {
+          "id": "phase_2",
+          "hpRange": { "min": 0, "max": 50 },
+          "opsPerTurn": { "min": 2, "max": 3 },
+          "actionWeights": [
+            { "actionId": "b_slash", "weight": 40 },
+            { "actionId": "b_heavy", "weight": 60 }
+          ],
+          "comboIds": ["combo_boss_double"]
+        }
+      ],
+      "actions": [
+        {
+          "id": "b_slash",
+          "name": "斩击",
+          "opType": "normal",
+          "damage": 6,
+          "playerRageCut": 1,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 600,
+          "hitAtMs": 300
+        },
+        {
+          "id": "b_heavy",
+          "name": "重斩",
+          "opType": "special",
+          "damage": 10,
+          "playerRageCut": 2,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 900,
+          "hitAtMs": 450
+        }
+      ],
+      "scaling": {
+        "hpPerFloor": 0.15,
+        "damagePerFloor": 0.1,
+        "ragePerFloor": 0
+      }
+    }
+  ]
+}

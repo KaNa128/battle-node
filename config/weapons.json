@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "weapons": [
+    {
+      "id": "sword_single",
+      "name": "单手剑",
+      "category": "normal",
+      "enabled": true,
+      "art": {
+        "idle": "assets/gifs/player/player_idle.gif",
+        "attack": "assets/gifs/player/player_attack.gif",
+        "hurt": "assets/gifs/player/player_hurt.gif"
+      },
+      "attacks": {
+        "normal": {
+          "id": "sword_single_normal",
+          "name": "普攻",
+          "opType": "normal",
+          "rageCost": 1,
+          "damage": 5,
+          "bossRageCut": 1,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 600,
+          "hitAtMs": 300
+        },
+        "special": {
+          "id": "sword_single_special",
+          "name": "特殊攻击",
+          "opType": "special",
+          "rageCost": 2,
+          "damage": 7,
+          "bossRageCut": 2,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 850,
+          "hitAtMs": 420
+        }
+      },
+      "upgradeTreeId": null,
+      "soulForgeId": null,
+      "comboIds": ["combo_basic"]
+    },
+    {
+      "id": "two_hand_blade",
+      "name": "双手剑",
+      "category": "normal",
+      "enabled": true,
+      "art": {
+        "idle": "assets/gifs/player/player_idle.gif",
+        "attack": "assets/gifs/player/player_attack.gif",
+        "hurt": "assets/gifs/player/player_hurt.gif"
+      },
+      "attacks": {
+        "normal": {
+          "id": "two_hand_blade_normal",
+          "name": "普攻",
+          "opType": "normal",
+          "rageCost": 2,
+          "damage": 7,
+          "bossRageCut": 3,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 750,
+          "hitAtMs": 360
+        },
+        "special": {
+          "id": "two_hand_blade_special",
+          "name": "特殊攻击",
+          "opType": "special",
+          "rageCost": 3,
+          "damage": 10,
+          "bossRageCut": 5,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 1000,
+          "hitAtMs": 500
+        }
+      },
+      "upgradeTreeId": null,
+      "soulForgeId": null,
+      "comboIds": ["combo_basic"]
+    },
+    {
+      "id": "axe",
+      "name": "巨斧",
+      "category": "special",
+      "enabled": true,
+      "art": {
+        "idle": "assets/gifs/player/player_idle.gif",
+        "attack": "assets/gifs/player/player_attack.gif",
+        "hurt": "assets/gifs/player/player_hurt.gif"
+      },
+      "attacks": {
+        "normal": {
+          "id": "axe_normal",
+          "name": "劈砍",
+          "opType": "normal",
+          "rageCost": 3,
+          "damage": 9,
+          "bossRageCut": 2,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 900,
+          "hitAtMs": 450
+        }
+      },
+      "upgradeTreeId": null,
+      "soulForgeId": null,
+      "comboIds": []
+    },
+    {
+      "id": "bow",
+      "name": "弓箭",
+      "category": "special",
+      "enabled": true,
+      "art": {
+        "idle": "assets/gifs/player/player_idle.gif",
+        "attack": "assets/gifs/player/player_attack.gif",
+        "hurt": "assets/gifs/player/player_hurt.gif"
+      },
+      "attacks": {
+        "normal": {
+          "id": "bow_normal",
+          "name": "射击",
+          "opType": "normal",
+          "rageCost": 1,
+          "damage": 3,
+          "bossRageCut": 2,
+          "effects": [],
+          "anim": "attack",
+          "animDurationMs": 700,
+          "hitAtMs": 350
+        }
+      },
+      "upgradeTreeId": null,
+      "soulForgeId": null,
+      "comboIds": []
+    }
+  ]
+}

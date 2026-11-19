@@ -1,0 +1,84 @@
+:root {
+  --bg: #14100d;
+  --bg-soft: #1f1915;
+  --panel: #241d18;
+  --panel-soft: #2c231d;
+  --line: rgba(214, 176, 116, 0.22);
+  --line-strong: rgba(214, 176, 116, 0.45);
+  --ink: #f1e6d6;
+  --ink-dim: #b7a893;
+  --ink-muted: #8a7a66;
+  --gold: #d6a85c;
+  --gold-soft: #f0cc8c;
+  --red: #c9553f;
+  --red-deep: #7d2b23;
+  --jade: #63c2b2;
+  --blue: #4a90d9;
+  --blue-soft: #93c7f5;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--ink);
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(214, 168, 92, 0.12), transparent 60%),
+    radial-gradient(800px 500px at 90% 100%, rgba(201, 85, 63, 0.1), transparent 55%),
+    var(--bg);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.boot-error {
+  max-width: 720px;
+  margin: 15vh auto;
+  padding: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  line-height: 1.7;
+}
+
+.boot-error h1 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  color: var(--gold-soft);
+}
+
+.boot-error pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  color: var(--ink-dim);
+}

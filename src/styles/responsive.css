@@ -1,0 +1,76 @@
+@media (max-width: 860px) {
+  .battle-arena {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .fighter {
+    position: static;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .fighter--player {
+    --portrait-w: 190px;
+    align-self: flex-start;
+  }
+
+  .fighter--boss {
+    --portrait-w: 230px;
+    align-self: flex-end;
+  }
+
+  .action-panel {
+    grid-template-columns:
+      minmax(0, 1.5fr)
+      minmax(0, 0.8fr)
+      minmax(0, 0.8fr)
+      minmax(0, 0.9fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .battle-shell {
+    padding: 10px 10px 18px;
+    gap: 10px;
+  }
+
+  .battle-title {
+    font-size: 17px;
+    letter-spacing: 0.1em;
+  }
+
+  .action-panel {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+
+  .fighter--player {
+    --portrait-w: 150px;
+  }
+
+  .fighter--boss {
+    --portrait-w: 185px;
+  }
+
+  .action-button {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .feedback-toast {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

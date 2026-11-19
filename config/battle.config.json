@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "turn": {
+    "bossOps": { "min": 2, "max": 3 },
+    "firstActor": "boss",
+    "mode": "alternate"
+  },
+  "player": {
+    "maxHp": 50,
+    "maxRage": 10,
+    "defaultLoadout": {
+      "normalWeapons": ["sword_single", "two_hand_blade"],
+      "specialWeapons": ["axe", "bow"]
+    },
+    "zeroRage": {
+      "threshold": 0,
+      "refillPerTurn": 1
+    }
+  },
+  "boss": {
+    "break": {
+      "skipAllOps": true,
+      "refillAfterBreak": true
+    }
+  },
+  "defense": {
+    "rageCost": 0,
+    "bossRageCutScale": 0.5,
+    "reflectOriginalCut": true
+  },
+  "switch": {
+    "cooldownOps": 2,
+    "cooldownAcrossTurns": true
+  },
+  "queue": {
+    "structure": "lifo",
+    "undoCount": 1
+  },
+  "specialUses": {
+    "shared": true,
+    "initial": 3,
+    "refill": "none"
+  },
+  "combo": {
+    "checkAt": "preSettlement"
+  },
+  "panel": {
+    "normalGroup": [
+      { "slot": 1, "keys": { "normal": "1.1", "special": "1.2" } },
+      { "slot": 2, "keys": { "normal": "2.1", "special": "2.2" } }
+    ],
+    "specialGroup": [
+      { "key": "3.1", "weaponId": "axe" },
+      { "key": "3.2", "weaponId": "bow" }
+    ],
+    "itemGroup": [
+      { "key": "4.1", "itemId": "potion_heal" },
+      { "key": "4.2", "itemId": null }
+    ],
+    "defendKey": "defend",
+    "switchKey": "switch",
+    "undoKey": "undo",
+    "submitKey": "submit"
+  },
+  "display": {
+    "decimals": 1
+  }
+}

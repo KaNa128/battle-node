@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "combos": [
+    {
+      "id": "combo_basic",
+      "name": "基础连招",
+      "owner": "player",
+      "scope": "global",
+      "weaponId": null,
+      "bossId": null,
+      "pattern": ["normal", "special", "normal"],
+      "match": {
+        "consecutive": true,
+        "interruptOn": ["defend", "item", "switch"],
+        "breakMode": "reset"
+      },
+      "bonus": { "damageMultiplier": 1.1, "extraBossRageCut": 4 },
+      "applyTo": "patternLastOp",
+      "unlock": { "type": "none", "id": null }
+    },
+    {
+      "id": "combo_boss_double",
+      "name": "Boss 双连",
+      "owner": "boss",
+      "scope": "boss",
+      "weaponId": null,
+      "bossId": "boss_01",
+      "pattern": ["b_slash", "b_heavy"],
+      "match": { "consecutive": true, "interruptOn": [], "breakMode": "reset" },
+      "bonus": { "damageMultiplier": 1.15, "extraBossRageCut": 0 },
+      "applyTo": "patternLastOp",
+      "unlock": { "type": "none", "id": null }
+    }
+  ]
+}
