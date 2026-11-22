@@ -1,4 +1,4 @@
-// 组合根：加载配置 → 校验 → 创建 RunController / SceneShell / SceneManager → 启动首个场景。
+// 组合根：加载配置 → 校验 → 创建 RunController / SceneShell / OverlayManager / SceneManager → 启动首个场景。
 // 只有这里可以同时 import data / state / meta / scenes / game，并由它注入场景工厂与战斗门面。
 
 import { loadConfig } from './data/ConfigLoader.js';
@@ -12,8 +12,13 @@ import { SceneShell } from './scenes/SceneShell.js';
 import { createHomeScene } from './scenes/HomeScene.js';
 import { createMapScene } from './scenes/MapScene.js';
 import { createBattleScene } from './scenes/BattleScene.js';
-import { createEventScene } from './scenes/EventScene.js';
-import { createChestScene } from './scenes/ChestScene.js';
+import { OverlayManager } from './scenes/overlays/OverlayManager.js';
+import { createInventoryOverlay } from './scenes/overlays/InventoryOverlay.js';
+import { createEventOverlay } from './scenes/overlays/EventOverlay.js';
+import { createChestOverlay } from './scenes/overlays/ChestOverlay.js';
+import { createShopOverlay } from './scenes/overlays/ShopOverlay.js';
+import { createSkillTreeOverlay } from './scenes/overlays/SkillTreeOverlay.js';
+import { createSettingsOverlay } from './scenes/overlays/SettingsOverlay.js';
 
 function showBootError(root, error) {
   root.innerHTML = '';
@@ -39,9 +44,25 @@ async function boot() {
     const seed = Number(query.get('seed')) || 20261118;
     const floor = Math.max(1, Number(query.get('floor')) || 1);
     const transitionMs = config.scenes.transition?.durationMs ?? 320;
+    const texts = config.ui.texts;
 
-    const runController = new RunController({ config, seed: seed });
+    const runController = new RunController({ config, seed });
     const shell = new SceneShell({ root, config, transitionMs });
+
+    const overlays = {
+      inventory: createInventoryOverlay({ config, texts }),
+      event: createEventOverlay({ config, texts }),
+      chest: createChestOverlay({ config, texts }),
+      shop: createShopOverlay({ config, texts }),
+      skills: createSkillTreeOverlay({ config, texts }),
+      settings: createSettingsOverlay({ config, texts }),
+    };
+    const overlayManager = new OverlayManager({
+      host: shell.overlayHost,
+      overlays,
+      // 浮层关闭后刷新 HUD，保证金币 / 强化次数 / 技能点立即同步。
+      onClose: () => shell.hud.render(runController.getHudSnapshot()),
+    });
 
     const manager = new SceneManager({
       host: shell,
@@ -49,10 +70,8 @@ async function boot() {
         home: createHomeScene,
         map: createMapScene,
         battle: createBattleScene,
-        event: createEventScene,
-        chest: createChestScene,
       },
-      loadingText: config.ui.texts['scene.loading'],
+      loadingText: texts['scene.loading'],
       transitionMs,
     });
 
@@ -62,16 +81,16 @@ async function boot() {
       manager,
       runController,
       config,
+      overlayManager,
       createBattle: () => {
         battleCount += 1;
         return new BattleModule({ config, rng: new Rng(seed + battleCount) });
       },
-      openInventory: (options) => shell.openInventory(options),
-      closeInventory: () => shell.closeInventory(),
     });
 
     manager.setContext(context);
     shell.setContext(context);
+    overlayManager.setContext(context);
 
     // 调试入口：?scene=battle 直接进战斗，?scene=map 直接进路线图。
     const requested = query.get('scene');
@@ -82,10 +101,11 @@ async function boot() {
     await manager.start(requested ?? 'home', {
       bossId: query.get('boss') ?? undefined,
       nodeId: requested ? `debug_${requested}` : undefined,
+      nodeType: requested === 'battle' ? 'battle' : undefined,
     });
 
     // 预留: 供控制台调试与自动化验收使用。
-    window.game = { manager, runController, shell };
+    window.game = { manager, runController, shell, overlayManager };
   } catch (error) {
     console.error(error);
     showBootError(root, error);

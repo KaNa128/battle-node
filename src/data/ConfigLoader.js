@@ -12,6 +12,12 @@ const CONFIG_FILES = {
   items: 'items.json',
   scenes: 'scenes.json',
   ui: 'ui.json',
+  map: 'map.json',
+  events: 'events.json',
+  chests: 'chests.json',
+  shop: 'shop.json',
+  skills: 'skills.json',
+  upgrades: 'upgrades.json',
 };
 
 const CONFIG_BASE_URL = new URL('../../config/', import.meta.url);

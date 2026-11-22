@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    {
+      "id": "event_wounded_monk",
+      "title": "受伤的行脚僧",
+      "image": "assets/events/wounded_monk.jpg",
+      "description": "山道旁的破庙里，一位行脚僧捂着伤口靠在柱子上。他抬眼看了看你，没有开口求助。庙外风声很紧。",
+      "choices": [
+        {
+          "id": "help",
+          "label": "递上金创药",
+          "result": "行脚僧合十道谢，从袖中摸出几枚铜钱塞给你。",
+          "effects": [{ "kind": "gold", "value": 20 }]
+        },
+        {
+          "id": "listen",
+          "label": "听他讲经",
+          "result": "你静坐片刻，心境澄明，对武学多了一层领悟。",
+          "effects": [{ "kind": "skillPoint", "value": 1 }]
+        },
+        {
+          "id": "leave",
+          "label": "转身离开",
+          "result": "你继续赶路，没有回头。",
+          "effects": []
+        }
+      ]
+    },
+    {
+      "id": "event_broken_cart",
+      "title": "翻倒的货车",
+      "image": "assets/events/broken_cart.jpg",
+      "description": "一辆货车侧翻在路中央，散落着几只木箱，车夫蹲在路边发愁。远处传来马蹄声。",
+      "choices": [
+        {
+          "id": "search",
+          "label": "翻找货物",
+          "result": "你在箱底摸到几枚铜钱，车夫敢怒不敢言。",
+          "effects": [{ "kind": "gold", "value": 30 }]
+        },
+        {
+          "id": "repair",
+          "label": "帮忙修车",
+          "result": "车夫千恩万谢，塞给你一包金创药。",
+          "effects": [{ "kind": "item", "itemId": "potion_heal", "value": 1 }]
+        },
+        {
+          "id": "guard",
+          "label": "在旁守候",
+          "result": "你守着货物直到天黑，车夫留下一点谢礼。",
+          "effects": [{ "kind": "enhanceCount", "enhanceCategory": "normalWeapon", "value": 1 }]
+        }
+      ]
+    }
+  ]
+}

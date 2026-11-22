@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "rows": 8,
+  "startType": "event",
+  "bossType": "boss",
+  "columns": {
+    "min": 2,
+    "max": 4
+  },
+  "nodeTypes": [
+    { "id": "battle", "weight": 52 },
+    { "id": "event", "weight": 18 },
+    { "id": "chest", "weight": 15 },
+    { "id": "shop", "weight": 15 }
+  ]
+}
