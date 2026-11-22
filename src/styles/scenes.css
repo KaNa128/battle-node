@@ -1,0 +1,222 @@
+/* 场景外壳：背景层、内容层、转场遮罩与全局背包入口。 */
+
+.scene-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ---- 背景层 ---- */
+.scene-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: var(--bg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.scene-bg__veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 620px at 50% 0%, rgba(214, 168, 92, 0.08), transparent 62%),
+    linear-gradient(180deg, rgba(10, 8, 6, 0.42), rgba(10, 8, 6, 0.78));
+}
+
+/* ---- 内容层 ---- */
+.scene-layer-host {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.scene-layer {
+  display: none;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.scene-layer.is-active {
+  display: block;
+}
+
+/* ---- 顶栏与全局背包入口 ---- */
+.scene-topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.scene-shell[data-scene="battle"] .scene-topbar {
+  display: none;
+}
+
+.scene-bag-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.72);
+  color: var(--gold-soft);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.scene-bag-button:hover,
+.scene-bag-button:focus-visible {
+  border-color: var(--gold-soft);
+  color: var(--ink);
+  outline: none;
+}
+
+/* ---- 转场遮罩 ---- */
+.scene-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 6, 5, 0.94);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--scene-transition-ms, 320ms) ease;
+}
+
+.scene-transition.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.scene-transition__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.scene-transition__spinner {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(214, 168, 92, 0.24);
+  border-top-color: var(--gold-soft);
+  border-radius: 50%;
+  animation: scene-spin 0.9s linear infinite;
+}
+
+.scene-transition__text {
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  color: var(--gold-soft);
+}
+
+@keyframes scene-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- 场景空壳通用布局 ---- */
+.scene-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  width: min(560px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 88px 20px 48px;
+  text-align: center;
+}
+
+.scene-page__head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.scene-page__title {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 0.24em;
+  color: var(--gold-soft);
+}
+
+.scene-page__subtitle {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.scene-page__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, 100%);
+}
+
+.scene-action {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(20, 16, 13, 0.66);
+  color: var(--ink-dim);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.scene-action:hover,
+.scene-action:focus-visible {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  outline: none;
+}
+
+.scene-action--primary {
+  border-color: var(--gold);
+  background: rgba(214, 168, 92, 0.16);
+  color: var(--gold-soft);
+}
+
+.scene-action--primary:hover,
+.scene-action--primary:focus-visible {
+  border-color: var(--gold-soft);
+  background: rgba(214, 168, 92, 0.26);
+}
+
+/* 战斗结算卡的「返回地图」按钮：复用 result-retry 外观，单独占一行。 */
+.result-card .result-retry[data-battle-return] {
+  display: block;
+  margin: 12px auto 0;
+}
+
+@media (max-width: 720px) {
+  .scene-page {
+    padding-top: 80px;
+  }
+
+  .scene-page__title {
+    font-size: 26px;
+  }
+}

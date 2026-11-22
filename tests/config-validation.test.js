@@ -3,9 +3,9 @@ import { validateConfig } from '../src/data/Validator.js';
 import { deepClone } from '../src/utils/deepClone.js';
 import { test, assert, assertEqual } from './runner.js';
 
-test('7 个配置文件均可加载并通过校验', async () => {
+test('全部配置文件均可加载并通过校验', async () => {
   const config = await loadConfig();
-  const keys = ['battleConfig', 'weapons', 'bosses', 'combos', 'effects', 'items', 'ui'];
+  const keys = ['battleConfig', 'weapons', 'bosses', 'combos', 'effects', 'items', 'scenes', 'ui'];
   for (const key of keys) assert(config[key], `缺少配置：${key}`);
   validateConfig(config);
   assertEqual(config.weapons.weapons.length, 4, '武器数量');

@@ -1,6 +1,6 @@
 # SCHEMA.md — 数据结构契约（唯一事实来源）
 
-> 本文件是**武器、Boss、操作序列**三类结构的字段级契约。
+> 本文件是**战斗数据、外层路线图、全局弹窗、HUD 快照**的字段级契约。
 > 结构变更只改本文件；数值调整只改 `config/*.json`。两者冲突时，以本文件为准。
 > 战斗规则语义见 `.trae/rules/combat_rules.md`，加载与存档规范见 `.trae/rules/data_rules.md`。
 > 所有示例为合法 JSON，不含注释。
@@ -740,8 +740,371 @@ for each switch 指令 in queue（按 seq 升序）:
 8. `combo.weaponId` / `bossId` / `unlock.id` / `effects[]` / `dropPoolId` 引用必须存在。
 9. `ResolvedStats` 所有数值 ≤ 1 位小数，且 `rageCost ≥ 0`。
 10. `PanelState.currentOrder` 必须能由 `baseOrder` + 队列中的 switch 指令推导得出。
+11. `map.nodeTypes[].id` 只能是 `battle / event / chest / shop / boss`；`boss` 权重为 0 且 `isBoss = true`。
+12. `MapGraph` 底部只有 1 个节点、顶部只有 1 个 Boss 节点，且为有向无环图。
+13. `events[].choices` 固定 3 项；`effects[].type` 与所需引用字段匹配。
+14. `chests[].image` / `openGif` 位于 `assets/chests/`；`rewards` 非空。
+15. `shop.columns[].offers` 非空；`price` / `refresh.baseCost` / `costStep` 为非负整数；`pickCount ≤ offers.length`。
+16. `skills.root` 唯一且 `cost = 0`；`prerequisiteIds` 无环；`upgrades.enhancement.maxLevel` 与 `categories` 完整。
 
-## 9. 版本策略
+## 9. 外层与全局系统契约
+
+> 本节覆盖路线图、事件、宝箱、商店、技能树、装备强化与 HUD 快照。
+> 这些系统不使用 Scene 路由：事件 / 宝箱 / 商店 / 背包 / 技能树 / 设置均为浮层。
+
+### 9.1 `map.json` 与 `MapGraph`
+
+顶层：
+
+```json
+{
+  "schemaVersion": 1,
+  "floor": {
+    "layers": 8,
+    "startNodeType": "event",
+    "bossNodeType": "boss"
+  },
+  "branch": {
+    "minPaths": 2,
+    "maxPaths": 3,
+    "minNodesPerLayer": 1,
+    "maxNodesPerLayer": 3
+  },
+  "nodeTypes": [
+    { "id": "battle", "weight": 45, "sceneId": "battle" },
+    { "id": "event", "weight": 20, "overlayId": "event" },
+    { "id": "chest", "weight": 15, "overlayId": "chest" },
+    { "id": "shop", "weight": 20, "overlayId": "shop" },
+    { "id": "boss", "weight": 0, "sceneId": "battle", "isBoss": true }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `floor.layers` | integer | 是 | 总层数，含底部起始层与顶部 Boss 层 |
+| `floor.startNodeType` | string | 是 | 底部唯一节点类型，固定为 `event` |
+| `floor.bossNodeType` | string | 是 | 顶部唯一节点类型，固定为 `boss` |
+| `branch.minPaths` / `.maxPaths` | integer | 是 | 每层分叉路径数范围 |
+| `branch.minNodesPerLayer` / `.maxNodesPerLayer` | integer | 是 | 中间层节点数范围 |
+| `nodeTypes[].id` | string | 是 | `battle` / `event` / `chest` / `shop` / `boss` |
+| `nodeTypes[].weight` | integer | 是 | 中间层抽取权重，`boss` 固定 0 |
+| `nodeTypes[].sceneId` | string | 条件 | 战斗类节点必填，`battle` |
+| `nodeTypes[].overlayId` | string | 条件 | 浮层类节点必填，`event` / `chest` / `shop` |
+| `nodeTypes[].isBoss` | boolean | 否 | 仅 `boss` 为 `true` |
+
+`MapGraph`（运行时，写入 `runState.mapNodes`）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `floor` | integer | 所属楼层 |
+| `seed` | integer | 本层种子，写入 `runState.floorSeed` |
+| `layers` | MapLayer[] | 下标 0 为底部起始层，末项为 Boss 层 |
+
+**MapLayer**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `index` | integer | 层号，0 基 |
+| `nodes` | MapNode[] | 该层节点 |
+
+**MapNode**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | string | 全局唯一，格式 `f<floor>_l<layer>_n<seq>` |
+| `type` | string | `battle` / `event` / `chest` / `shop` / `boss` |
+| `layer` | integer | 所在层 |
+| `column` | integer | 该层横向序号，用于绘制分叉 |
+| `nextIds` | string[] | 连通的上一层节点 id；Boss 层为 `[]` |
+| `payloadId` | string \| null | `eventId` / `chestId` / `bossId`；商店为 `null` |
+
+约束：
+
+- 底部层只有 1 个 `event` 节点；顶部层只有 1 个 `boss` 节点。
+- 除顶部层外每个节点至少 1 个 `nextIds`；图是有向无环图。
+- 每层生成后立即写入 `runState`，当层内不再重算；升层时用新的 `floorSeed` 重新生成。
+- 节点完成状态不入 `MapNode`，统一记在 `runState.completedNodeIds`。
+
+### 9.2 `events.json`
+
+```json
+{
+  "schemaVersion": 1,
+  "events": [
+    {
+      "id": "event_wanderer",
+      "titleKey": "event.wanderer.title",
+      "descKey": "event.wanderer.desc",
+      "image": "assets/events/event_wanderer.png",
+      "choices": [
+        {
+          "id": "help",
+          "textKey": "event.wanderer.choice.help",
+          "resultKey": "event.wanderer.result.help",
+          "effects": [
+            { "type": "gold", "value": 50 },
+            { "type": "enhanceCount", "enhanceCategory": "normalWeapon", "value": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `id` | string | 是 | 唯一 |
+| `titleKey` / `descKey` | string | 是 | `ui.json` 文案键 |
+| `image` | string | 是 | `assets/events/` 下的相对路径 |
+| `choices` | EventChoice[] | 是 | 固定 3 项 |
+| `choices[].id` | string | 是 | 事件内唯一 |
+| `choices[].textKey` / `.resultKey` | string | 是 | 选项文案 / 结算文案键 |
+| `choices[].effects` | Effect[] | 是 | 结构化效果，可为空数组 |
+
+**Effect**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `type` | string | `gold` / `healFlat` / `healPercent` / `maxHpFlat` / `enhanceCount` / `skillPoint` / `item` / `dropPool` |
+| `value` | number | 数值；`dropPool` 时为抽取次数 |
+| `enhanceCategory` | string \| null | 仅 `enhanceCount` 使用 |
+| `itemId` / `dropPoolId` | string \| null | 仅 `item` / `dropPool` 使用 |
+
+### 9.3 `chests.json`
+
+```json
+{
+  "schemaVersion": 1,
+  "openDurationMs": 1200,
+  "chests": [
+    {
+      "id": "chest_common",
+      "nameKey": "chest.common.name",
+      "image": "assets/chests/chest_common.png",
+      "openGif": "assets/chests/chest_common_open.gif",
+      "rewards": [
+        { "type": "gold", "value": 50 },
+        { "type": "enhanceCount", "enhanceCategory": "item", "value": 1 }
+      ]
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `id` / `nameKey` | string | 是 | 唯一 id 与文案键 |
+| `image` / `openGif` | string | 是 | 合盖图与开箱 GIF，位于 `assets/chests/` |
+| `rewards` | Effect[] | 是 | 固定奖励清单，全部生效并按 `nameKey` 展示 |
+| `openDurationMs` | integer | 是 | 开箱动画时长，播放完再展示清单 |
+
+- 需要随机奖励时使用 `type: "dropPool"`，从 `drops.json` 抽取；抽取结果同样写入清单。
+- 奖励先由 `ChestResolver` 合并进 `RunState`，再关闭浮层。
+
+### 9.4 `shop.json` 与 `ShopSession`
+
+```json
+{
+  "schemaVersion": 1,
+  "purchaseLimit": 1,
+  "columns": [
+    {
+      "id": "weapons",
+      "titleKey": "shop.column.weapons",
+      "slots": 3,
+      "refresh": { "baseCost": 50, "costStep": 50 },
+      "offers": [
+        { "id": "offer_sword_single", "weaponId": "sword_single", "price": 120 },
+        { "id": "offer_axe", "weaponId": "axe", "price": 150 }
+      ]
+    },
+    {
+      "id": "items",
+      "titleKey": "shop.column.items",
+      "slots": 2,
+      "refresh": { "baseCost": 50, "costStep": 50 },
+      "offers": [
+        { "id": "offer_potion_heal", "itemId": "potion_heal", "price": 60 }
+      ]
+    },
+    {
+      "id": "enhance",
+      "titleKey": "shop.column.enhance",
+      "slots": 2,
+      "pickCount": 2,
+      "refresh": { "baseCost": 50, "costStep": 50 },
+      "offers": [
+        { "id": "offer_enhance_normal", "enhanceCategory": "normalWeapon", "amount": 1, "price": 80 },
+        { "id": "offer_enhance_special", "enhanceCategory": "specialWeapon", "amount": 1, "price": 80 },
+        { "id": "offer_enhance_item", "enhanceCategory": "item", "amount": 1, "price": 80 }
+      ]
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `purchaseLimit` | integer | 是 | 每个商品实例的限购次数，固定 1 |
+| `columns[].id` | string | 是 | `weapons` / `items` / `enhance` |
+| `columns[].slots` | integer | 是 | 单次展示商品数 |
+| `columns[].pickCount` | integer | 否 | 从 offers 中随机抽取的数量，仅 `enhance` 使用 |
+| `columns[].refresh.baseCost` | integer | 是 | 首次刷新价格 |
+| `columns[].refresh.costStep` | integer | 是 | 每次刷新后的涨价幅度 |
+| `offers[].id` | string | 是 | 商品模板 id |
+| `offers[].price` | integer | 是 | 金币价格 |
+| `offers[].weaponId` / `itemId` / `enhanceCategory` | string | 条件 | 三选一，按栏位类型填写 |
+| `offers[].amount` | integer | 条件 | 仅 `enhance` 使用，表示一次购买获得的强化次数 |
+
+**ShopSession**（运行时，不存档）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `nodeId` | string | 对应路线图节点 |
+| `columns` | ShopColumnState[] | 三栏独立状态 |
+
+**ShopColumnState**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `columnId` | string | 栏位 id |
+| `offers` | ShopOfferInstance[] | 当前展示的商品实例 |
+| `refreshCount` | integer | 本栏已刷新次数 |
+| `lastRefreshCost` | integer \| null | 最近一次刷新花费 |
+
+**ShopOfferInstance**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `instanceId` | string | 本次展示唯一，刷新后重新生成 |
+| `offerId` | string | 模板 id |
+| `price` | integer | 本次售价 |
+| `purchased` | boolean | 是否已购买 |
+
+约束：
+
+- 刷新价格 = `baseCost + costStep × refreshCount`，由 meta 计算，UI 只显示。
+- 三栏刷新互不影响；刷新后 `offers` 全部替换且 `purchased` 重置为 `false`。
+- 商品实例限购 1 次；购买后置灰但保留在栏内直到下次刷新。
+- 金币不足时购买与刷新按钮置灰。
+- `ShopSession` 关闭即丢弃，不写入存档。
+
+### 9.5 `skills.json`
+
+```json
+{
+  "schemaVersion": 1,
+  "root": "skill_root",
+  "nodes": [
+    {
+      "id": "skill_root",
+      "nameKey": "skill.root.name",
+      "branch": "root",
+      "cost": 0,
+      "prerequisiteIds": [],
+      "effects": []
+    },
+    {
+      "id": "skill_sword_mastery",
+      "nameKey": "skill.sword_mastery.name",
+      "branch": "purple",
+      "cost": 1,
+      "prerequisiteIds": ["skill_root"],
+      "effects": [{ "stat": "attackPowerPercent", "value": 0.05 }]
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `root` | string | 是 | 根节点 id，唯一且 `cost = 0` |
+| `nodes[].id` | string | 是 | 唯一 |
+| `nodes[].branch` | string | 是 | `root` / `purple` / `cyan` / `red`；颜色由样式决定 |
+| `nodes[].cost` | integer | 是 | 点亮消耗技能点，非负 |
+| `nodes[].prerequisiteIds` | string[] | 是 | 前置节点，必须全部已点亮 |
+| `nodes[].effects` | object[] | 是 | `{ stat, value }`，stat 取值见 `data_rules.md` §4 |
+
+- 技能点来源：普通战斗胜利 +1，Boss 战胜利 +3，事件可额外产出。
+- 点亮是永久状态，写入 `runState.unlockedSkillIds`。
+- 前置未全部点亮或点数不足时，节点置灰，不可点击。
+
+### 9.6 `upgrades.json.enhancement`
+
+```json
+{
+  "schemaVersion": 1,
+  "upgrades": [],
+  "enhancement": {
+    "maxLevel": 30,
+    "categories": [
+      { "id": "normalWeapon", "chargesPerLevel": 1, "statPerLevel": { "damagePercent": 0.02 } },
+      { "id": "specialWeapon", "chargesPerLevel": 1, "statPerLevel": { "damagePercent": 0.02 } },
+      { "id": "item", "chargesPerLevel": 1, "statPerLevel": { "healPercent": 0.02 } }
+    ]
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `enhancement.maxLevel` | integer | 单件装备强化上限，固定 30 |
+| `categories[].id` | string | `normalWeapon` / `specialWeapon` / `item` |
+| `categories[].chargesPerLevel` | integer | 每升 1 级消耗的强化次数 |
+| `categories[].statPerLevel` | object | 每级提供的属性加成，按 `stat` 累加 |
+
+- 强化等级写入 `runState.enhanceLevels[equipmentId]`，剩余次数写入 `runState.enhanceCounts[category]`。
+- 战斗中禁止强化与换装；UI 依据 `InventorySnapshot.editable` 置灰。
+- 武器异变 / 升级树本期不做，`upgrades` 保留空数组。
+
+### 9.7 快照契约
+
+**HudSnapshot**（`RunController.getHudSnapshot()`）
+
+```json
+{
+  "sceneId": "map",
+  "show": true,
+  "inBattle": false,
+  "hp": { "current": 42, "max": 50 },
+  "rage": { "current": 10, "max": 10 },
+  "gold": 320,
+  "enhanceCounts": { "normalWeapon": 2, "specialWeapon": 1, "item": 3 }
+}
+```
+
+- `rage.current` 在战斗外固定等于 `rage.max`；战斗中由战斗快照覆盖。
+- `hp.current` 始终是当前剩余血量。
+- `show` 由 `sceneId !== "home"` 决定，SceneShell 用它控制显隐。
+- HUD 不计算任何字段，只渲染。
+
+**StatsSnapshot**（`RunController.getStatsSnapshot()`）
+
+```json
+{
+  "maxHp": 50,
+  "maxRage": 10,
+  "attackPower": 5.4,
+  "defense": 0
+}
+```
+
+**InventorySnapshot**（`RunController.getInventorySnapshot()`）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `equipment` | object | 已装备的普通 / 特殊武器与药品 |
+| `enhanceLevels` | object | 装备 id → 等级 |
+| `enhanceCounts` | object | 三类剩余次数 |
+| `stats` | StatsSnapshot | 综合属性 |
+| `editable` | boolean | 战斗外为 `true`，战斗中为 `false` |
+
+- `editable = false` 时，强化、换装、使用按钮置灰；筛选、悬停、查看保持可用。
+- 背包为全局唯一浮层，所有场景共用同一份快照与同一组意图方法。
+
+## 10. 版本策略
 
 | 变更类型 | 处理 |
 |---|---|

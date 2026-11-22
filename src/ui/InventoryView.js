@@ -88,8 +88,8 @@ export class InventoryView {
     document.body.appendChild(this.menu);
 
     this.overlay.querySelector('.inventory-header h2').textContent = this.texts['inventory.title'];
-    this.overlay.querySelector('.inventory-header__hint').textContent =
-      this.texts['inventory.battleHint'];
+    this.hintEl = this.overlay.querySelector('.inventory-header__hint');
+    this.hintEl.textContent = this.texts['inventory.battleHint'];
     this.closeButton = this.overlay.querySelector('.inventory-close');
     this.closeButton.textContent = this.texts['inventory.close'];
     this.closeButton.setAttribute('aria-label', this.texts['inventory.close']);
@@ -237,7 +237,10 @@ export class InventoryView {
 
   // ---- 打开 / 关闭 ---------------------------------------------------
 
-  open(snapshot) {
+  // options.inBattle / options.hint 由外层场景决定：同一份背包实例可服务战斗内外。
+  open(snapshot, options = {}) {
+    if (options.inBattle !== undefined) this.inBattle = Boolean(options.inBattle);
+    if (options.hint !== undefined) this.hintEl.textContent = options.hint;
     this.snapshot = snapshot;
     this.filter = 'all';
     this.detailTab = 'detail';

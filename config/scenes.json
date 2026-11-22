@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "durationMs": 320
+  },
+  "scenes": [
+    {
+      "id": "home",
+      "title": "江湖行",
+      "background": "assets/backgrounds/home.jpg"
+    },
+    {
+      "id": "map",
+      "title": "路线图",
+      "background": "assets/backgrounds/map.jpg"
+    },
+    {
+      "id": "battle",
+      "title": "战斗",
+      "background": "assets/backgrounds/battle_default.jpg"
+    },
+    {
+      "id": "event",
+      "title": "事件",
+      "background": "assets/backgrounds/event.jpg"
+    },
+    {
+      "id": "chest",
+      "title": "宝箱",
+      "background": "assets/backgrounds/chest.jpg"
+    }
+  ]
+}

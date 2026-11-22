@@ -10,10 +10,12 @@ import { FeedbackLayer } from './FeedbackLayer.js';
 import { GifPlayer } from './anim/GifPlayer.js';
 
 export class BattleView {
-  constructor({ root, config, onKey }) {
+  constructor({ root, config, onKey, onInventory = null }) {
     this.root = root;
     this.config = config;
     this.onKey = onKey;
+    // 外层提供 onInventory 时复用全局背包；否则退回战斗内自带实例。
+    this.onInventory = onInventory;
     this.texts = config.ui.texts;
     this.interactive = false;
     this.lastSnapshot = null;
@@ -159,7 +161,11 @@ export class BattleView {
       onKey: this.onKey,
       onInventory: () => {
         if (!this.lastSnapshot || this.lastSnapshot.result) return;
-        this.inventory.open(this.lastSnapshot);
+        if (this.onInventory) {
+          this.onInventory(this.lastSnapshot);
+          return;
+        }
+        this.inventory?.open(this.lastSnapshot);
       },
     });
 
@@ -167,12 +173,14 @@ export class BattleView {
     this.playerGif = new GifPlayer(this.playerImg);
     this.bossGif = new GifPlayer(this.bossImg);
 
-    this.inventory = new InventoryView({
-      container: this.shell,
-      config: this.config,
-      texts: this.texts,
-      inBattle: true,
-    });
+    this.inventory = this.onInventory
+      ? null
+      : new InventoryView({
+          container: this.shell,
+          config: this.config,
+          texts: this.texts,
+          inBattle: true,
+        });
   }
 
   render(snapshot) {

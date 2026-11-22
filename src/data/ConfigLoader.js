@@ -1,4 +1,4 @@
-// 配置加载：并行 fetch 7 个 JSON，深冻结后作为只读配置注入。
+// 配置加载：并行 fetch 全部 JSON，深冻结后作为只读配置注入。
 // 路径基于本文件位置推导，保证根页面与 /tests/ 页面都能加载。
 
 import { deepFreeze } from '../utils/deepClone.js';
@@ -10,6 +10,7 @@ const CONFIG_FILES = {
   combos: 'combos.json',
   effects: 'effects.json',
   items: 'items.json',
+  scenes: 'scenes.json',
   ui: 'ui.json',
 };
 

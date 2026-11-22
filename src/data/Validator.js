@@ -68,6 +68,7 @@ class ConfigValidator {
     this.validateCombos();
     this.validateBosses();
     this.validateItems();
+    this.validateScenes();
     this.validateUi();
     this.validateBattleConfig();
 
@@ -403,6 +404,42 @@ class ConfigValidator {
       this.check(isNumber(item.heal) && item.heal >= 0, `${path}.heal`, '必须 ≥ 0 的数字');
       this.check(isInteger(item.usesPerBattle) && item.usesPerBattle >= 1, `${path}.usesPerBattle`, '必须 ≥ 1 的整数');
       this.check(isInteger(item.animDurationMs) && item.animDurationMs > 0, `${path}.animDurationMs`, '必须是正整数');
+    });
+  }
+
+  validateScenes() {
+    const root = this.config.scenes;
+    if (!this.validateFile(root, 'scenes.json')) return;
+
+    if (root.transition !== undefined && this.check(isPlainObject(root.transition), 'scenes.json.transition', '必须是对象')) {
+      this.check(
+        isInteger(root.transition.durationMs) && root.transition.durationMs >= 0,
+        'scenes.json.transition.durationMs',
+        '必须是非负整数',
+      );
+    }
+
+    if (!this.check(Array.isArray(root.scenes) && root.scenes.length > 0, 'scenes.json.scenes', '必须是非空数组')) return;
+
+    const ids = new Set();
+    root.scenes.forEach((scene, index) => {
+      const path = `scenes.json.scenes[${index}]`;
+      if (!isPlainObject(scene)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(scene.id), `${path}.id`, '必填非空字符串')) return;
+      if (ids.has(scene.id)) this.fail(`${path}.id`, `场景 id 重复：${scene.id}`);
+      ids.add(scene.id);
+
+      this.check(isNonEmptyString(scene.title), `${path}.title`, '必填非空字符串');
+      if (this.check(isNonEmptyString(scene.background), `${path}.background`, '必填非空字符串')) {
+        this.check(
+          scene.background.startsWith('assets/backgrounds/'),
+          `${path}.background`,
+          '必须是 assets/backgrounds/ 下的相对路径',
+        );
+      }
     });
   }
 
