@@ -1,0 +1,164 @@
+/* 顶部 HUD：除首页外所有场景显示，数据全部来自 HudSnapshot。 */
+
+.scene-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+}
+
+.scene-shell[data-scene="home"] .scene-hud {
+  display: none;
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(10, 8, 6, 0.94), rgba(10, 8, 6, 0.62));
+  backdrop-filter: blur(6px);
+}
+
+.hud__button,
+.hud__avatar {
+  min-height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.72);
+  color: var(--gold-soft);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.hud__avatar {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.hud__button:hover,
+.hud__button:focus-visible,
+.hud__avatar:hover,
+.hud__avatar:focus-visible {
+  border-color: var(--gold-soft);
+  color: var(--ink);
+  outline: none;
+}
+
+.hud__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+
+.hud__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.hud__bar-label {
+  min-width: 28px;
+}
+
+.hud__bar-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.hud__bar-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  transition: width 0.24s ease;
+}
+
+.hud__bar--hp .hud__bar-fill {
+  background: linear-gradient(90deg, var(--red-deep), var(--red));
+}
+
+.hud__bar--rage .hud__bar-fill {
+  background: linear-gradient(90deg, #8a6a2f, var(--gold-soft));
+}
+
+.hud__bar-value {
+  min-width: 52px;
+  text-align: right;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__gold,
+.hud__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.6);
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+.hud__gold strong,
+.hud__chip-value {
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__enhance {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hud__chip--normalWeapon {
+  border-color: rgba(214, 168, 92, 0.42);
+}
+
+.hud__chip--specialWeapon {
+  border-color: rgba(99, 194, 178, 0.42);
+}
+
+.hud__chip--item {
+  border-color: rgba(201, 85, 63, 0.42);
+}
+
+/* 战斗界面自身有标题栏，补出 HUD 高度避免遮挡。 */
+.scene-shell[data-scene="battle"] .battle-shell {
+  padding-top: 96px;
+}
+
+@media (max-width: 720px) {
+  .hud__bars {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .hud__bar-value {
+    min-width: 44px;
+  }
+
+  .scene-shell[data-scene="battle"] .battle-shell {
+    padding-top: 118px;
+  }
+}

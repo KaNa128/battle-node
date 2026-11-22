@@ -1,0 +1,146 @@
+/* 路线图：自下而上的节点分叉，节点只负责展示与点击意图。 */
+
+.map-scene {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 96px 16px 32px;
+}
+
+.map-scene__head {
+  text-align: center;
+}
+
+.map-scene__title {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0.24em;
+  color: var(--gold-soft);
+}
+
+.map-scene__subtitle {
+  margin: 6px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--ink-muted);
+}
+
+.map-scene__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.map-scene__board {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: min(720px, 100%);
+  margin: 6px 0;
+}
+
+.map-scene__row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: clamp(18px, 8vw, 64px);
+}
+
+.map-scene__row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(180deg, var(--line-strong), transparent);
+}
+
+.map-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(44, 35, 29, 0.95), rgba(20, 16, 13, 0.95));
+  color: var(--ink-dim);
+  font-size: 18px;
+  letter-spacing: 0;
+  cursor: default;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.map-node:disabled {
+  opacity: 0.45;
+}
+
+.map-node.is-available {
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
+  box-shadow: 0 0 0 3px rgba(214, 168, 92, 0.16), 0 8px 20px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.map-node.is-available:hover,
+.map-node.is-available:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.map-node--battle .map-node__glyph {
+  color: var(--red);
+}
+
+.map-node--boss {
+  width: 68px;
+  height: 68px;
+  border-width: 2px;
+  border-color: var(--red);
+}
+
+.map-node--boss .map-node__glyph {
+  color: var(--red);
+  font-size: 22px;
+}
+
+.map-node--event .map-node__glyph {
+  color: #b79cf0;
+}
+
+.map-node--chest .map-node__glyph {
+  color: var(--gold-soft);
+}
+
+.map-node--shop .map-node__glyph {
+  color: var(--jade);
+}
+
+.map-node.is-completed {
+  opacity: 0.38;
+}
+
+.map-node.is-current {
+  box-shadow: 0 0 0 3px rgba(99, 194, 178, 0.32);
+}
+
+.map-node__badge {
+  position: absolute;
+  bottom: -18px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(20, 16, 13, 0.9);
+  border: 1px solid var(--line);
+  color: var(--jade);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.map-scene__footer {
+  margin-top: 8px;
+}

@@ -26,9 +26,9 @@
 ## 当前状态
 
 - **V0.1 战斗竖切已实现**：战斗核心、无框尖塔式 UI、背包界面、逻辑测试（`tests/index.html`）。
-- **P0 骨架已实现**：SceneManager、SceneShell、`Loading...` 转场、全局背包浮层、场景空壳。
-- **待收敛**：现有 `EventScene` / `ChestScene` 与 `scenes.json` 的 event / chest 条目需在 P2 移除，改为 `OverlayManager` 浮层。
-- **待实现**：MapGenerator、地图配置、事件 / 宝箱 / 商店 / 技能树结算、HUD、单背包三栏、装备强化、Boss 升层、失败清档、IndexedDB 存档。
+- **P0~P3 页面骨架已落地**：场景收敛为 `home / map / battle`；`EventScene` / `ChestScene` 已删除；`OverlayManager` 与六个浮层容器（背包 / 事件 / 宝箱 / 商店 / 技能树 / 设置）可用；HUD、路线图、战斗胜负分流、失败回首页清档已串通。
+- **已补最小配置**：`map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json`，可支撑一局从首页走到 Boss。
+- **待实现 / 待扩充**：独立 Resolver 拆分、IndexedDB 存档与迁移、职业化内容与数值平衡、正式美术与音频；六个浮层当前为可交互骨架，内容需各负责人按目录归属扩充。
 - **本期不做**：图鉴、武器异变 / 武器升级树、饰品、铸魂、正式美术与音频。
 
 已确认的产品规则：

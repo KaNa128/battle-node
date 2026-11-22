@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "columns": [
+    {
+      "id": "weapons",
+      "titleKey": "overlay.shop.column.weapons",
+      "refresh": { "baseCost": 50, "costStep": 50 },
+      "offers": [
+        { "id": "offer_sword", "kind": "weapon", "weaponId": "sword_single", "price": 40 },
+        { "id": "offer_axe", "kind": "weapon", "weaponId": "axe", "price": 35 },
+        { "id": "offer_bow", "kind": "weapon", "weaponId": "bow", "price": 30 }
+      ]
+    },
+    {
+      "id": "items",
+      "titleKey": "overlay.shop.column.items",
+      "refresh": { "baseCost": 30, "costStep": 30 },
+      "offers": [
+        { "id": "offer_potion", "kind": "item", "itemId": "potion_heal", "price": 20 }
+      ]
+    },
+    {
+      "id": "enhance",
+      "titleKey": "overlay.shop.column.enhance",
+      "refresh": { "baseCost": 60, "costStep": 60 },
+      "offers": [
+        {
+          "id": "offer_enh_normal",
+          "kind": "enhance",
+          "enhanceCategory": "normalWeapon",
+          "amount": 1,
+          "price": 50
+        },
+        {
+          "id": "offer_enh_special",
+          "kind": "enhance",
+          "enhanceCategory": "specialWeapon",
+          "amount": 1,
+          "price": 50
+        },
+        {
+          "id": "offer_enh_item",
+          "kind": "enhance",
+          "enhanceCategory": "item",
+          "amount": 1,
+          "price": 50
+        }
+      ]
+    }
+  ]
+}

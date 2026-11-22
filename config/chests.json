@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "chests": [
+    {
+      "id": "chest_old",
+      "name": "旧木箱",
+      "gif": "assets/chests/old_chest.gif",
+      "rewards": [{ "kind": "gold", "value": 25 }]
+    },
+    {
+      "id": "chest_lacquer",
+      "name": "描金漆箱",
+      "gif": "assets/chests/lacquer_chest.gif",
+      "rewards": [
+        { "kind": "gold", "value": 40 },
+        { "kind": "enhanceCount", "enhanceCategory": "item", "value": 1 }
+      ]
+    }
+  ]
+}

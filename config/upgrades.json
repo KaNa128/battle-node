@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "enhancement": {
+    "maxLevel": 30,
+    "categories": [
+      { "id": "normalWeapon", "labelKey": "hud.enhance.normal", "initialCount": 3 },
+      { "id": "specialWeapon", "labelKey": "hud.enhance.special", "initialCount": 2 },
+      { "id": "item", "labelKey": "hud.enhance.item", "initialCount": 2 }
+    ]
+  }
+}

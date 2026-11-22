@@ -1,7 +1,7 @@
-// 场景外壳：背景层 + 内容层 + 转场遮罩 + 全局背包。
+// 场景外壳：背景层 + HUD + 内容层 + 转场遮罩 + 全局浮层宿主。
 // 这里是唯一创建场景层级 DOM 的位置，SceneManager 只负责调用顺序。
 
-import { InventoryView } from '../ui/InventoryView.js';
+import { HudView } from '../ui/hud/HudView.js';
 
 export class SceneShell {
   constructor({ root, config, transitionMs = 320 }) {
@@ -26,10 +26,9 @@ export class SceneShell {
       <div class="scene-shell" data-scene="">
         <div class="scene-bg" data-scene-bg></div>
         <div class="scene-bg__veil"></div>
-        <div class="scene-topbar">
-          <button type="button" class="scene-bag-button" data-scene-bag></button>
-        </div>
+        <div class="scene-hud" data-scene-hud></div>
         <div class="scene-layer-host" data-scene-layer-host></div>
+        <div class="overlay-host" data-overlay-host></div>
         <div class="scene-transition hidden" data-scene-transition aria-hidden="true">
           <div class="scene-transition__inner">
             <span class="scene-transition__spinner"></span>
@@ -43,19 +42,16 @@ export class SceneShell {
     this.shell.style.setProperty('--scene-transition-ms', `${this.transitionMs}ms`);
     this.bg = this.root.querySelector('[data-scene-bg]');
     this.layerHost = this.root.querySelector('[data-scene-layer-host]');
+    this.overlayHost = this.root.querySelector('[data-overlay-host]');
     this.transition = this.root.querySelector('[data-scene-transition]');
     this.transitionText = this.root.querySelector('[data-scene-transition-text]');
-    this.bagButton = this.root.querySelector('[data-scene-bag]');
 
     this.transitionText.textContent = this.texts['scene.loading'];
-    this.bagButton.textContent = this.texts['scene.bag'];
-    this.bagButton.addEventListener('click', () => this.openInventory());
 
-    this.inventory = new InventoryView({
-      container: this.shell,
-      config: this.config,
+    this.hud = new HudView({
+      container: this.root.querySelector('[data-scene-hud]'),
       texts: this.texts,
-      inBattle: false,
+      onAction: (action) => this.context?.openOverlay?.(action),
     });
   }
 
@@ -117,6 +113,9 @@ export class SceneShell {
       layer.classList.toggle('is-active', layer === element);
     }
     element.classList.add('is-active');
+
+    // 首页不显示 HUD，也不要在进入首页时隐式创建一局。
+    if (sceneId !== 'home') this.hud.render(this.context?.getHudSnapshot?.());
   }
 
   async loadBackground(background) {
@@ -145,26 +144,7 @@ export class SceneShell {
     this.layerHost.innerHTML = '';
   }
 
-  // ---- 全局背包 ------------------------------------------------------
-
-  openInventory(options = {}) {
-    const snapshot = options.snapshot ?? this.context?.getInventorySnapshot?.();
-    if (!snapshot) return;
-
-    const inBattle = Boolean(options.inBattle);
-    this.inventory.open(snapshot, {
-      inBattle,
-      hint: this.texts[inBattle ? 'inventory.battleHint' : 'inventory.outsideHint'],
-    });
-  }
-
-  closeInventory() {
-    this.inventory.close();
-  }
-
   destroy() {
-    this.inventory.overlay.remove();
-    this.inventory.menu.remove();
     this.root.innerHTML = '';
   }
 }

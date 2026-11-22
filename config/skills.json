@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "id": "skill_root",
+      "name": "内息根基",
+      "branch": "root",
+      "cost": 0,
+      "row": 0,
+      "col": 1,
+      "prerequisiteIds": [],
+      "description": "武学之始，点亮后开启三条分支。"
+    },
+    {
+      "id": "skill_purple_1",
+      "name": "紫气东来",
+      "branch": "purple",
+      "cost": 1,
+      "row": 1,
+      "col": 0,
+      "prerequisiteIds": ["skill_root"],
+      "description": "攻击力小幅提升（预留）。"
+    },
+    {
+      "id": "skill_purple_2",
+      "name": "紫电清霜",
+      "branch": "purple",
+      "cost": 2,
+      "row": 2,
+      "col": 0,
+      "prerequisiteIds": ["skill_purple_1"],
+      "description": "连招伤害提升（预留）。"
+    },
+    {
+      "id": "skill_purple_3",
+      "name": "紫府归元",
+      "branch": "purple",
+      "cost": 3,
+      "row": 3,
+      "col": 0,
+      "prerequisiteIds": ["skill_purple_2"],
+      "description": "气血上限提升（预留）。"
+    },
+    {
+      "id": "skill_cyan_1",
+      "name": "青锋初现",
+      "branch": "cyan",
+      "cost": 1,
+      "row": 1,
+      "col": 1,
+      "prerequisiteIds": ["skill_root"],
+      "description": "杀气上限提升（预留）。"
+    },
+    {
+      "id": "skill_cyan_2",
+      "name": "青莲剑歌",
+      "branch": "cyan",
+      "cost": 2,
+      "row": 2,
+      "col": 1,
+      "prerequisiteIds": ["skill_cyan_1"],
+      "description": "特殊攻击次数增加（预留）。"
+    },
+    {
+      "id": "skill_cyan_3",
+      "name": "沧海一粟",
+      "branch": "cyan",
+      "cost": 3,
+      "row": 3,
+      "col": 1,
+      "prerequisiteIds": ["skill_cyan_2"],
+      "description": "防御效果提升（预留）。"
+    },
+    {
+      "id": "skill_red_1",
+      "name": "赤焰燃心",
+      "branch": "red",
+      "cost": 1,
+      "row": 1,
+      "col": 2,
+      "prerequisiteIds": ["skill_root"],
+      "description": "生命回复提升（预留）。"
+    },
+    {
+      "id": "skill_red_2",
+      "name": "血战八方",
+      "branch": "red",
+      "cost": 2,
+      "row": 2,
+      "col": 2,
+      "prerequisiteIds": ["skill_red_1"],
+      "description": "低血量时伤害提升（预留）。"
+    },
+    {
+      "id": "skill_red_3",
+      "name": "焚身以火",
+      "branch": "red",
+      "cost": 3,
+      "row": 3,
+      "col": 2,
+      "prerequisiteIds": ["skill_red_2"],
+      "description": "以血换力（预留）。"
+    }
+  ]
+}
