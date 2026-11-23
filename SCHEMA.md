@@ -42,8 +42,8 @@
 | `enabled` | boolean | 否 | 默认 `true`；`false` 时不进入面板与校验引用 |
 | `art` | ArtSet | 是 | 立绘与动画路径 |
 | `attacks` | object | 是 | 普通武器含 `normal` + `special`；特殊武器**仅含 `normal`** |
-| `upgradeTreeId` | string \| null | 否 | 指向 `upgrades.json` 的树 id |
-| `soulForgeId` | string \| null | 否 | 指向 `soulforge.json` 的武器条目 |
+| `upgradeTreeId` | string \| null | 否 | 预留：指向 `upgrades.json` 的树 id；升级树未落地，当前恒为 `null` |
+| `soulForgeId` | string \| null | 否 | 预留：指向 `soulforge.json` 的武器条目；铸魂未落地，当前恒为 `null` |
 | `comboIds` | string[] | 否 | 该武器可触发的连招，默认 `[]` |
 
 ### 2.3 ArtSet
@@ -115,8 +115,8 @@
           "hitAtMs": 420
         }
       },
-      "upgradeTreeId": "tree_sword_single",
-      "soulForgeId": "soul_sword_single",
+      "upgradeTreeId": null,
+      "soulForgeId": null,
       "comboIds": ["combo_basic"]
     },
     {
@@ -155,8 +155,8 @@
           "hitAtMs": 500
         }
       },
-      "upgradeTreeId": "tree_two_hand_blade",
-      "soulForgeId": "soul_two_hand_blade",
+      "upgradeTreeId": null,
+      "soulForgeId": null,
       "comboIds": ["combo_basic"]
     },
     {
@@ -183,8 +183,8 @@
           "hitAtMs": 450
         }
       },
-      "upgradeTreeId": "tree_axe",
-      "soulForgeId": "soul_axe",
+      "upgradeTreeId": null,
+      "soulForgeId": null,
       "comboIds": []
     },
     {
@@ -211,8 +211,8 @@
           "hitAtMs": 350
         }
       },
-      "upgradeTreeId": "tree_bow",
-      "soulForgeId": "soul_bow",
+      "upgradeTreeId": null,
+      "soulForgeId": null,
       "comboIds": []
     }
   ]
@@ -242,7 +242,7 @@
 | `phases` | Phase[] | 是 | 至少 1 个，按 `hpRange` 覆盖 `[0, maxHp]` |
 | `actions` | BossAction[] | 是 | 该 Boss 所有可用行为 |
 | `scaling` | Scaling | 是 | 无尽模式层数缩放 |
-| `reward` | object | 否 | `{ "dropPoolId": "drop_pool_01" }` |
+| `reward` | object | 否 | 预留：`{ "dropPoolId": "drop_pool_01" }`；`drops.json` 未落地，当前配置不写该字段 |
 
 ### 3.3 Phase
 
@@ -357,8 +357,7 @@ result   = round1(effective)
           "hitAtMs": 450
         }
       ],
-      "scaling": { "hpPerFloor": 0.15, "damagePerFloor": 0.10, "ragePerFloor": 0.0 },
-      "reward": { "dropPoolId": "drop_pool_01" }
+      "scaling": { "hpPerFloor": 0.15, "damagePerFloor": 0.10, "ragePerFloor": 0.0 }
     }
   ]
 }
@@ -741,15 +740,15 @@ for each switch 指令 in queue（按 seq 升序）:
 5. `phases[].actionWeights[].actionId` 必须存在于同一 Boss 的 `actions`。
 6. `phases[].opsPerTurn.min ≤ max`，且 `max ≤ 5`。
 7. `combo.pattern` 中玩家 token 只能是 `"normal"` / `"special"`；Boss token 必须是有效 actionId。
-8. `combo.weaponId` / `bossId` / `unlock.id` / `effects[]` / `dropPoolId` 引用必须存在。
+8. `combo.weaponId` / `bossId` / `unlock.id` / `effects[]` 引用必须存在。
 9. `ResolvedStats` 所有数值 ≤ 1 位小数，且 `rageCost ≥ 0`。
 10. `PanelState.currentOrder` 必须能由 `baseOrder` + 队列中的 switch 指令推导得出。
-11. `map.nodeTypes[].id` 只能是 `battle / event / chest / shop / boss`；`boss` 权重为 0 且 `isBoss = true`。
-12. `MapGraph` 底部只有 1 个节点、顶部只有 1 个 Boss 节点，且为有向无环图。
-13. `events[].choices` 固定 3 项；`effects[].type` 与所需引用字段匹配。
-14. `chests[].image` / `openGif` 位于 `assets/chests/`；`rewards` 非空。
-15. `shop.columns[].offers` 非空；`price` / `refresh.baseCost` / `costStep` 为非负整数；`pickCount ≤ offers.length`。
-16. `skills.root` 唯一且 `cost = 0`；`prerequisiteIds` 无环；`upgrades.enhancement.maxLevel` 与 `categories` 完整。
+11. `map.rows ≥ 3`；`startType = "event"`；`bossType = "boss"`；`columns.min ≤ columns.max`。
+12. `map.nodeTypes[].id` 只能是 `battle / event / chest / shop / boss`，权重为非负整数且总和大于 0，必须包含 `battle`。
+13. `events[].choices` 固定 3 项；`effects[].kind` 只能是 `gold / hp / skillPoint / enhanceCount / item`，`itemId` / `enhanceCategory` 引用必须存在。
+14. `chests[].gif` 位于 `assets/chests/`；`rewards` 使用与事件相同的 Effect 结构。
+15. `shop.columns[].offers` 非空；`price` / `refresh.baseCost` / `costStep` 为非负整数；商品 `kind` 必须与栏位匹配。
+16. `skills` 有且仅有一个空前置的 `root` 节点且 `cost = 0`；`prerequisiteIds` 无环；`upgrades.enhancement.maxLevel` 与 `categories` 完整。
 
 ## 9. 外层与全局系统契约
 
@@ -1007,7 +1006,7 @@ for each switch 指令 in queue（按 seq 升序）:
 - 强化次数写入 `runState.enhanceCounts[category]`，等级写入 `runState.enhanceLevels[equipmentId]`。
 - 每强化 1 级消耗 1 次对应类别次数，单件不超过 `maxLevel`。
 - 战斗中禁止强化与换装，UI 依据 `InventorySnapshot.inBattle` 置灰。
-- 武器异变 / 升级树本期不做，`upgrades` 字段不落地。
+- 武器异变 / 升级树本期不做，`upgrades.json` 仅保留 `enhancement` 段，不含升级树。
 
 ### 9.7 快照契约
 

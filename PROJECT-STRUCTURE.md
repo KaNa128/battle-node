@@ -20,41 +20,32 @@ d:\AICode\
 │
 ├─ config/                           # 纯数据层（只读，运行时 fetch）
 │  ├─ battle.config.json             # 回合、杀气、防御、切换、连招、面板、显示精度
-│  ├─ weapons.json                   # 4 把武器：数值 / 动画 / 升级与铸魂引用
+│  ├─ weapons.json                   # 4 把武器：数值 / 动画 / 升级与铸魂引用（预留）
 │  ├─ combos.json                    # 连招 pattern 与加成
 │  ├─ bosses.json                    # Boss 数值 / 阶段权重 / 行为 / 缩放
 │  ├─ effects.json                   # 治疗 / Buff / Debuff 原子效果
 │  ├─ items.json                     # 药品与每场次数
-│  ├─ accessories.json               # 饰品与独立升级（待建）
-│  ├─ upgrades.json                  # 强化规则 enhancement + 升级树占位
-│  ├─ soulforge.json                  # 铸魂分支 + 全局次数池（待建）
-│  ├─ drops.json                     # 掉落池（待建）
-│  ├─ levels.json                    # 层数缩放与普通战斗敌人池（待建）
+│  ├─ upgrades.json                  # 装备强化规则 enhancement（升级树本期不做）
 │  ├─ scenes.json                    # 仅 home / map / battle 的背景与转场
-│  ├─ map.json                       # 路线图生成：层数 / 分叉 / 节点权重（待建）
-│  ├─ events.json                    # 事件文案、配图与选项效果（待建）
-│  ├─ chests.json                    # 宝箱奖励与开箱表现（待建）
-│  ├─ shop.json                      # 商店三栏、价格与刷新规则（待建）
-│  ├─ skills.json                    # 技能树节点、前置、消耗与效果（待建）
+│  ├─ map.json                       # 路线图生成：行数 / 分叉 / 节点权重
+│  ├─ events.json                    # 事件文案、配图与选项效果
+│  ├─ chests.json                    # 宝箱奖励与开箱表现
+│  ├─ shop.json                      # 商店三栏、价格与刷新规则
+│  ├─ skills.json                    # 技能树节点、前置与消耗
 │  └─ ui.json                        # 文案 / Tooltip / HUD 与浮层标签
 
-├─ assets/
-│  ├─ backgrounds/                   # 场景背景图（仅 home / map / battle）
-│  │  ├─ home.jpg                    # 首页
-│  │  ├─ map.jpg                     # 路线图
-│  │  └─ battle_default.jpg          # 战斗默认背景
-│  ├─ events/                        # 事件配图（预留）
-│  ├─ chests/                        # 宝箱合盖图与开箱 GIF（预留）
+> `accessories.json`、`soulforge.json`、`drops.json`、`levels.json` 本期未落地，不在 `ConfigLoader` 加载列表内。
+
+├─ assets/                           # 目前仅玩家 GIF 已落地，其余为占位路径
+│  ├─ backgrounds/                   # 场景背景图（home / map / battle，暂缺）
+│  ├─ events/                        # 事件配图（暂缺）
+│  ├─ chests/                        # 宝箱合盖图与开箱 GIF（暂缺）
 │  ├─ skills/                        # 技能树节点图标（预留）
 │  ├─ ui/                            # HUD 图标：金币 / 强化次数 / 设置（预留）
 │  ├─ gifs/
-│  │  ├─ player/                     # player_idle.gif / player_attack.gif / player_hurt.gif
-│  │  └─ bosses/                     # boss_01_idle.gif / boss_01_attack.gif / boss_01_hurt.gif
-│  ├─ icons/
-│  │  ├─ actions/                    # op_normal.svg / op_special.svg / op_defend.svg
-│  │  ├─ weapons/                    # weapon_sword_single.png / weapon_two_hand.png
-│  │  ├─ items/                      # item_potion_heal.png
-│  │  └─ map/                        # node_battle.svg / node_event.svg / node_chest.svg / node_shop.svg
+│  │  ├─ player/                     # 已落地：player_idle / player_attack / player_hurt（含 *_bg 备用）
+│  │  └─ bosses/                     # boss_01 系列（暂缺）
+│  ├─ icons/                         # 动作 / 武器 / 物品 / 地图节点图标（暂缺）
 │  └─ audio/                         # BGM / SFX（预留）
 │
 ├─ src/
@@ -62,15 +53,11 @@ d:\AICode\
 │  │
 │  ├─ meta/                          # 外层逻辑：无 DOM，不 import scenes / ui
 │  │  ├─ SceneManager.js             # 场景路由、生命周期、参数传递、转场编排
-│  │  ├─ RunController.js            # 一局生命周期的唯一写入口（含 HUD / 属性快照）
-│  │  ├─ MapGenerator.js             # 杀戮尖塔式路线生成（纯函数 + 注入 Rng）
-│  │  ├─ EventResolver.js            # 事件选项结算
-│  │  ├─ ChestResolver.js            # 宝箱奖励结算
-│  │  ├─ ShopService.js              # 商店栏位、购买、独立刷新与涨价
-│  │  ├─ SkillTree.js                # 技能树前置校验与点亮
+│  │  ├─ RunController.js            # 一局生命周期的唯一写入口（含地图、事件 / 宝箱 / 商店 / 技能树结算、存档）
+│  │  ├─ MapGenerator.js             # 杀戮尖塔式路线生成（确定性 + seed 构造 Rng）
 │  │  ├─ StatsCalculator.js          # 血量 / 杀气 / 攻击力汇总
-│  │  ├─ RewardSystem.js             # 掉落 → RunState 合并
-│  │  └─ SceneContext.js             # 构造场景可用能力（navigate / snapshot / config）
+│  │  └─ SceneContext.js             # 构造场景可用能力（navigate / snapshot / 意图 / config）
+│  │                                # 预留：EventResolver / ChestResolver / ShopService / SkillTree / RewardSystem 待从 RunController 拆出
 │  │
 │  ├─ scenes/                        # 场景 UI：只读快照、只发意图
 │  │  ├─ SceneShell.js               # 外壳：背景层 + HUD 挂载点 + 内容层 + 转场遮罩
@@ -95,11 +82,12 @@ d:\AICode\
 │  │  ├─ ComboSystem.js              # 连招匹配与加成
 │  │  ├─ BossAI.js                   # 阶段权重 + 随机序列
 │  │  ├─ CommandQueue.js             # LIFO 队列与快照
-│  │  ├─ EffectSystem.js             # Buff / Debuff
+│  │  ├─ PanelState.js               # 面板派生：baseOrder + 队列 switch 推导
+│  │  │                              # 预留：EffectSystem（Buff / Debuff）尚未落地
 │  │  └─ Rng.js                      # 可注入随机源
 │  │
 │  ├─ state/
-│  │  ├─ RunState.js                 # 局内持久化状态（含楼层、地图、节点进度）
+│  │  ├─ RunState.js                 # 玩家局内持久化状态（血量 / 金币 / 装备 / 强化 / 技能）
 │  │  ├─ BattleState.js              # 单场战斗状态
 │  │  └─ SaveManager.js              # IndexedDB + 导出 / 导入 + 版本迁移
 │  │
@@ -109,6 +97,7 @@ d:\AICode\
 │  │
 │  ├─ ui/                            # 表现层 + 通用组件：只读快照
 │  │  ├─ BattleView.js
+│  │  ├─ InventoryView.js            # 战斗内独立背包已弃用，仅保留兼容分支
 │  │  ├─ SequenceBar.js
 │  │  ├─ ActionPanel.js
 │  │  ├─ StatusBars.js
@@ -123,7 +112,8 @@ d:\AICode\
 │  │  │  ├─ ChestModal.js            # 宝箱图 + 开箱 GIF + 获得物清单
 │  │  │  ├─ ShopModal.js             # 三栏商品 + 每栏刷新
 │  │  │  ├─ SkillTreeModal.js        # 根节点 + 紫 / 青 / 红三枝
-│  │  │  └─ SettingsModal.js         # 标准设置项
+│  │  │  ├─ SettingsModal.js         # 标准设置项
+│  │  │  └─ text.js                  # 文案占位与效果格式化
 │  │  ├─ bridge/
 │  │  │  └─ BattlePresenter.js
 │  │  └─ anim/
@@ -133,10 +123,10 @@ d:\AICode\
 │  ├─ styles/
 │  │  ├─ base.css                    # reset、变量、字体
 │  │  ├─ battle.css                  # 战斗布局与组件
-│  │  ├─ scenes.css                  # SceneShell / 背景层 / 转场 / 通用场景容器
+│  │  ├─ scenes.css                  # SceneShell / 背景层 / 转场 / 首页
 │  │  ├─ hud.css                     # 顶部栏
-│  │  ├─ modals.css                  # 浮层遮罩、面板、背包 / 事件 / 宝箱 / 商店 / 技能树 / 设置
-│  │  ├─ home.css                    # 首页
+│  │  ├─ inventory.css               # 背包与装备栏
+│  │  ├─ modals.css                  # 浮层遮罩、面板、六个浮层
 │  │  ├─ map.css                     # 路线图
 │  │  └─ responsive.css              # 触屏 / 窄屏断点
 │  │
@@ -145,13 +135,16 @@ d:\AICode\
 │     ├─ math.js
 │     └─ deepClone.js
 │
-└─ tests/                            # 浏览器内纯逻辑测试
+└─ tests/                            # 浏览器内纯逻辑测试（当前平铺）
    ├─ index.html                     # 入口（4 号位维护）
    ├─ runner.js                      # 断言器（4 号位维护）
-   ├─ game/                          # 1 号位：战斗核心
-   ├─ meta/                          # 3 号位：路由 / 地图 / 结算
-   ├─ data/                          # 4 号位：配置校验 / 数据
-   └─ ui/                            # 2 号位：快照渲染冒烟（无 DOM 计算）
+   ├─ engine.test.js                 # 战斗结算 / 门面
+   ├─ combo.test.js                  # 连招
+   ├─ rage.test.js                   # 杀气与破防
+   ├─ panel.test.js                  # 面板 / 切换 / 撤回
+   ├─ turn-order.test.js             # 回合顺序
+   └─ config-validation.test.js      # 配置校验
+   # 预留：按 game / meta / data / ui 二级目录拆分后，再按协作规则下放写入权
 ```
 
 ## 2. 目录职责与边界
@@ -243,7 +236,7 @@ new SceneManager({ scenes, host, loadingText, transitionMs });
 manager.setContext(context);
 
 await manager.start('home');                        // 首个场景
-await manager.navigate('map', { floor: 1 });        // 普通跳转
+await manager.navigate('map', {});                  // 普通跳转
 await manager.navigate('battle', params, { replace: true });
 manager.back();                                     // 返回上一场景（有栈时）
 manager.current();                                  // 当前 sceneId
@@ -266,27 +259,26 @@ manager.onChange(({ from, to, params }) => {});     // 路由变化订阅
 
 | 起点 | 目标 | 参数 | 说明 |
 |---|---|---|---|
-| 启动 | `home` | — | 无存档「新游戏」，有存档「读取存档」 |
-| `home` | `map` | `{ seed }` | 新开一局，`RunController.startRun` |
-| `home` | `map` | `{}` | 继续已有 `runState` |
+| 启动 | `home` | — | 无存档「新游戏」，有存档「继续江湖」 |
+| `home` | `map` | `{}` | 新游戏先 `ctx.startRun()` |
+| `home` | `map` | `{}` | 继续已有存档（启动时已 `restore`） |
 | `home` | 无 | — | 图鉴本期不做，入口置灰 |
-| `map` | `battle` | `{ nodeId, bossId, scaling }` | 普通战斗或 Boss 节点 |
-| `map` | 浮层 `event` | `{ nodeId, eventId }` | `ctx.openOverlay('event', params)` |
-| `map` | 浮层 `chest` | `{ nodeId, chestId }` | `ctx.openOverlay('chest', params)` |
+| `map` | `battle` | `{ nodeId, nodeType }` | 普通战斗或 Boss 节点 |
+| `map` | 浮层 `event` | `{ nodeId }` | `ctx.openOverlay('event', params)` |
+| `map` | 浮层 `chest` | `{ nodeId }` | `ctx.openOverlay('chest', params)` |
 | `map` | 浮层 `shop` | `{ nodeId }` | `ctx.openOverlay('shop', params)` |
-| `battle` | `map` | `{ nodeId }` | 先 `applyBattleResult` 再跳转；普通胜利不升层 |
-| `battle` | `home` | — | 失败结算页点「返回首页」，先清档 |
+| `battle` | `map` | `{}` | 胜利先 `ctx.applyBattleResult`；Boss 完成时内部升层 |
+| `battle` | `home` | — | 失败结算页点「返回首页」→ `ctx.abandonRun()` 清档 |
 | 任意场景 | 浮层 `inventory` | — | HUD 背包按钮 |
 | 任意场景 | 浮层 `skills` | — | HUD 头像 |
 | 任意场景 | 浮层 `settings` | — | HUD 齿轮 |
-| `map` | `map` | `{ floor }` | Boss 节点完成 → `advanceFloor` 生成下一层 |
 
 ### 4.5 浮层（Overlay）契约
 
 ```js
 overlayManager.open('shop', { nodeId });   // Promise<result>；关闭时 resolve
 overlayManager.close(result);              // 主动关闭
-overlayManager.current();                  // { id, params } | null
+overlayManager.current();                  // 当前浮层 id | null
 ```
 
 - 同一时刻只允许一个浮层；打开新浮层会先关闭旧浮层（旧 Promise `resolve(null)`）。
@@ -303,47 +295,52 @@ overlayManager.current();                  // { id, params } | null
 
 ```js
 // 一局生命周期
-runController.startRun({ seed });
-runController.getSnapshot();               // 深拷贝只读快照
-runController.save();
-runController.abortRun();                  // 放弃本局：清档 + 回首页
-runController.failRun();                   // 战斗失败：清档 + 回首页
+runController.startRun({ seed, floor });   // 新开一局：生成地图并写档
+runController.restore(record);             // 从 SaveManager 迁移后的存档恢复
+runController.toSaveRecord();              // 生成存档载荷
+runController.resetRun();                  // 放弃 / 失败：清空内存局并删除存档
+runController.hasRun();                    // 是否存在可继续的一局
 
 // 快照（UI 只读）
+runController.getSnapshot();
 runController.getHudSnapshot();            // HUD 顶部栏
 runController.getStatsSnapshot();          // 血量 / 杀气 / 攻击力
 runController.getInventorySnapshot();      // 背包三栏
+runController.getMapSnapshot();            // MapGraph + 完成状态
+runController.getBattleInput(overrides);   // { bossId, scaling, playerSavedData }
 
 // 地图与节点
-runController.getMapSnapshot();            // MapGraph + 完成状态
-runController.startFloor();                // 生成当前层并写入 mapNodes / floorSeed
-runController.selectNode(nodeId);          // 校验连通性
-runController.completeNode(nodeId);        // 记录完成
-runController.advanceFloor();              // 仅 Boss 节点完成后调用
+runController.ensureMap();                 // 缺地图时按 floorSeed 重建
+runController.findNode(nodeId);
+runController.getNodeType(nodeId);
+runController.completeNode(nodeId);        // 记录完成；Boss 完成时内部 advanceFloor
+runController.advanceFloor();              // 升层并生成新地图
 
 // 战斗
-runController.getBattleInput(nodeId);      // { bossId, scaling, playerSavedData }
-runController.applyBattleResult(result);   // 合并奖励、金币、技能点
+runController.applyBattleResult(payload, { nodeId, nodeType });
 
 // 浮层结算
-runController.resolveEvent(eventId, choiceId);
-runController.openChest(chestId);
-runController.openShop(nodeId);            // 创建 ShopSession
-runController.purchase(columnId, instanceId);
-runController.refreshShop(columnId);
-runController.closeShop();
+runController.getEventSnapshot(nodeId);
+runController.resolveEventChoice(nodeId, choiceId);
+runController.getChestSnapshot(nodeId);
+runController.openChest(nodeId);
+runController.getShopSnapshot();
+runController.buyShopOffer(columnId, offerId);
+runController.refreshShopColumn(columnId);
+runController.getSkillTreeSnapshot();
 runController.unlockSkill(skillId);
-runController.enhanceEquipment(equipmentId);
-runController.equip(equipmentId);
+runController.enhanceWeapon(weaponId);
 ```
+
+`persist()` 是内部方法：上述意图改完状态后自动写档，调用方不需要手动保存。
 
 ### 5.2 启动流程
 
 ```text
 index.html → main.js
-  → ConfigLoader.fetchAll() → Validator.validate()
-  → SaveManager.load() → RunController（持有 RunState 或空局）
-  → 创建 SceneShell、SceneManager、OverlayManager、HudView
+  → ConfigLoader.loadConfig() → Validator.validateConfig()
+  → SaveManager.load() → RunController.restore()（无存档则保持空局）
+  → 创建 SceneShell、OverlayManager、SceneContext、SceneManager
   → 注册场景工厂：home / map / battle
   → SceneManager.start('home')
 ```
@@ -352,32 +349,31 @@ index.html → main.js
 
 ```text
 home
-  → 新游戏 startRun(seed) → map
-  → 继续 loadSave() → map
+  → 新游戏：ctx.startRun() → navigate('map', {})
+  → 继续：navigate('map', {})（启动时已 restore）
   → 选择节点（只允许与当前位置连通的上一层）
-      ├→ battle：BattleScene 用 getBattleInput() 启动 BattleModule
+      ├→ battle：BattleScene 用 ctx.getBattleInput() 启动 BattleModule
       │    → onResult
-      │        ├ win：applyBattleResult → completeNode → save
-      │        │      ├ 普通战斗：回 map，楼层不变
-      │        │      └ Boss：advanceFloor → 生成下一层 → map
-      │        └ lose：failRun → 清档 → 结算页「返回首页」→ home
-      ├→ event：打开 event 浮层 → resolveEvent → completeNode → save → map
-      ├→ chest：打开 chest 浮层 → openChest → completeNode → save → map
-      └→ shop：打开 shop 浮层 → 购买 / 刷新 → closeShop → completeNode → save → map
-  → 本层 Boss 完成 → advanceFloor → 生成下一层 map
-  → 放弃本局 → abortRun → 清档 → home
+      │        ├ win：ctx.applyBattleResult(payload, { nodeId, nodeType })
+      │        │      ├ 普通战斗：completeNode → 回 map，楼层不变
+      │        │      └ Boss：completeNode 内 advanceFloor → 新地图 → map
+      │        └ lose：停留结算页 → 点「返回首页」→ ctx.abandonRun() 清档 → home
+      ├→ event：openOverlay('event', { nodeId }) → resolveEventChoice → completed 后 completeNode
+      ├→ chest：openOverlay('chest', { nodeId }) → openChest → completed 后 completeNode
+      └→ shop：openOverlay('shop', { nodeId }) → 购买 / 刷新 → 关闭即完成节点
+  → 放弃本局 → ctx.abandonRun() → 清档 → home
 ```
 
 ### 5.4 战斗场景的数据边界
 
 ```text
 BattleScene
-  → ctx.runController.getBattleInput()
+  → ctx.getBattleInput()
   → BattleModule.start({ bossId, scaling, playerSavedData })
   → onResult({ result, playerSavedData, drops, battleLog })
-      ├ win → ctx.runController.applyBattleResult(result)
-      │        → completeNode → （Boss 时 advanceFloor）→ navigate('map')
-      └ lose → 停留结算页 → 点击「返回首页」→ ctx.runController.failRun() → navigate('home')
+      ├ win → ctx.applyBattleResult(payload, { nodeId, nodeType })
+      │        → completeNode（Boss 时内部 advanceFloor）→ navigate('map')
+      └ lose → 停留结算页 → 点击「返回首页」→ ctx.abandonRun() → navigate('home')
 ```
 
 - 战斗模块不接收 `RunState` 实例，只接收快照。
@@ -390,7 +386,7 @@ BattleScene
 RunController（唯一计算方）
   ├ getHudSnapshot()    → SceneShell / HudView：血量、杀气、金币、三类强化次数
   ├ getStatsSnapshot()  → InventoryModal：maxHp / maxRage / attackPower
-  └ getInventorySnapshot() → InventoryModal：装备、强化等级、editable
+  └ getInventorySnapshot() → InventoryModal：装备、强化等级；SceneContext 注入 inBattle
 
 HudView 点击
   ├ 背包 → ctx.openInventory()
@@ -399,14 +395,14 @@ HudView 点击
 ```
 
 - HUD 只渲染，不计算；杀气条战斗外固定满条，血量显示当前值。
-- 战斗中 `editable = false`，强化 / 换装置灰，浏览与筛选保留。
+- 战斗中 `inBattle = true`，强化操作置灰，浏览与筛选保留。
 
 ### 5.6 地图生成数据流
 
 ```text
-MapGenerator.generate({ floor, seed, config })
-  → MapGraph（layers / nodes / nextIds / payloadId）
-  → RunController.startFloor()：写入 mapNodes、floorSeed、currentNodeId
+MapGenerator.generateMap({ floor, seed, config })
+  → MapGraph（rows 网格 / nodes 平铺 / nextIds / completedNodeIds）
+  → RunController.startRun() 或 advanceFloor()：写入 floor、floorSeed、map
   → MapScene 渲染（只读 getMapSnapshot）
   → 节点完成 completeNode → 仅 Boss 完成时 advanceFloor → 新 floorSeed → 重新生成
 ```
@@ -415,14 +411,14 @@ MapGenerator.generate({ floor, seed, config })
 
 ```text
 InventoryModal 强化按钮
-  → ctx.enhanceEquipment(equipmentId)
-  → RunController 校验：非战斗、等级 < 30、对应类别次数 > 0
-  → 扣 1 次 → enhanceLevels +1 → StatsCalculator 重算 → save
+  → ctx.enhanceWeapon(weaponId)
+  → RunController 校验：等级 < enhancement.maxLevel、对应类别次数 > 0
+  → 扣 1 次 → enhanceLevels +1 → 快照重算 → 写档
 
 SkillTreeModal 节点点击
   → ctx.unlockSkill(skillId)
   → RunController 校验：前置全亮、skillPoints ≥ cost
-  → skillPoints -= cost → unlockedSkillIds 增加 → StatsCalculator 重算 → save
+  → skillPoints -= cost → unlockedSkillIds 增加 → 快照重算 → 写档
 ```
 
 ## 6. 场景背景预留规范
@@ -465,7 +461,7 @@ SkillTreeModal 节点点击
 - 背景路径属于数据，写在 `scenes.json`；裁切、遮罩、暗角属于 `styles/`。
 - 图片统一放 `assets/backgrounds/`，推荐 1920×1080，`object-fit: cover`。
 - 缺图时 `SceneShell` 保留背景层并显示 `[data-scene]` 对应的渐变兜底，不允许出现空白或报错。
-- 战斗场景可按 Boss 覆盖背景：`bosses[*].background` 优先于 `scenes.battle.background`，未配置则用默认。
+- 战斗场景背景统一取 `scenes.json` 的 `battle.background`；Boss 专属背景为预留能力，当前未实现。
 - 事件 / 宝箱 / 商店 / 背包 / 技能树 / 设置不注册 `scenes.json`，由 `OverlayManager` + `styles/modals.css` 统一渲染。
 - 新场景上线前必须同时提交：场景空壳、`scenes.json` 条目、背景占位样式；新浮层只需提交浮层容器与配置，不动 `scenes.json`。
 
@@ -475,17 +471,19 @@ SkillTreeModal 节点点击
 
 | 成员 | 物理目录 / 文件 |
 |---|---|
-| 1 号位 | `src/game/`、`src/state/`、`tests/game/`、`combat_rules.md` |
-| 2 号位 | `src/ui/`（含 `hud/`、`modals/`）、`src/styles/`、`assets/`、`tests/ui/` |
-| 3 号位 | `src/meta/`、`src/scenes/`（含 `overlays/`）、`src/data/`、`src/main.js`、`index.html`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/meta/` |
-| 4 号位 | `config/`、`tests/`（入口与 `tests/data/`）、`SCHEMA.md`、`data_rules.md` |
+| 1 号位 | `src/game/`、`src/state/`、`tests/` 中的战斗用例 |
+| 2 号位 | `src/ui/`（含 `hud/`、`modals/`）、`src/styles/`、`assets/`、`tests/` 中的 UI 用例 |
+| 3 号位 | `src/meta/`、`src/scenes/`（含 `overlays/`）、`src/data/`、`src/main.js`、`index.html`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/` 中的 meta 用例 |
+| 4 号位 | `config/`、`SCHEMA.md`、`data_rules.md`、`tests/runner.js`、`tests/index.html`、配置校验用例 |
+
+> `tests/` 目前为平铺结构；二级目录（`game / meta / data / ui`）为规划目标，拆分后按协作规则下放写入权。
 
 ## 8. 文件命名约定
 
 | 类型 | 规则 | 示例 |
 |---|---|---|
 | 类 / 组件文件 | PascalCase | `SceneManager.js`、`MapScene.js` |
-| 工具 / 实例文件 | camelCase | `configLoader.js` |
+| 工具 / 实例文件 | camelCase | `SceneContext.js` 内的工厂函数；类文件仍用 PascalCase |
 | 测试文件 | `*.test.js` | `map-generator.test.js` |
 | CSS 文件 | kebab-case | `map.css` |
 | 配置字段 | camelCase | `rageCost`、`background` |
@@ -509,7 +507,7 @@ SkillTreeModal 节点点击
 npx serve . -l 5173        # 根目录启动静态服务器
 # 游戏：http://localhost:5173
 # 逻辑测试：http://localhost:5173/tests/index.html
-# 战斗场景独立调试：http://localhost:5173/?scene=battle&bossId=boss_01
+# 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1
 ```
 
 ## 11. 外围系统开发顺序（摘要）
@@ -517,10 +515,11 @@ npx serve . -l 5173        # 根目录启动静态服务器
 | 阶段 | 负责人 | 内容 | 验收 |
 |---|---|---|---|
 | P0（已完成） | 3 号 | `SceneManager`、`SceneShell`、`Loading...` 转场、基础场景空壳、全局背包浮层 | 场景可切换，无控制台报错 |
-| P1 契约与配置 | 4 号 | `SCHEMA.md` 补外层契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整 |
-| P2 场景收敛与浮层骨架 | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载与显隐；删除 event / chest 场景 | 六个浮层可开可关，无残留计时器 |
-| P3 HUD 与弹窗 UI | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/hud.css`、`styles/modals.css` | 桌面与窄屏可用，数值全部来自快照 |
-| P4 一局闭环 | 3 号 | `RunController` 新字段与意图、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档 | 一局可走到 Boss，失败回首页，存档可续 |
-| P5 内容、平衡与联调 | 全员 | 内容填充、数值平衡、存档迁移、回归测试与部署 | 测试全绿，无占位假逻辑 |
+| P1（已完成） | 4 号 | `SCHEMA.md` 补外层契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整 |
+| P2（已完成） | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载与显隐；删除 event / chest 场景 | 六个浮层可开可关，无残留计时器 |
+| P3（已完成） | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/hud.css`、`styles/modals.css` | 桌面与窄屏可用，数值全部来自快照 |
+| P4 地基（已完成） | 3 号 | `RunController` 新字段与意图、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档、`SaveManager` 存档与恢复 | 一局可走到 Boss，失败回首页，刷新后可续 |
+| P4 收尾（进行中） | 3 号 | 独立 Resolver 拆分、商店会话与强化细节补全、存档边界回归 | 无内联重复结算逻辑，回归全绿 |
+| P5 内容、平衡与联调 | 全员 | 内容填充、数值平衡、正式资源、回归测试与部署 | 测试全绿，无占位假逻辑 |
 
 详细排期、接口冻结与 AI 使用边界见 `.trae/rules/collaboration_rules.md`。
