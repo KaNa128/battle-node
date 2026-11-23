@@ -25,6 +25,7 @@
   },
   "defense": {
     "rageCost": 0,
+    "damageScale": 0.5,
     "bossRageCutScale": 0.5,
     "reflectOriginalCut": true
   },

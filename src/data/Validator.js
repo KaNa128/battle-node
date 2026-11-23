@@ -481,6 +481,7 @@ class ConfigValidator {
 
     if (this.check(isPlainObject(root.defense), 'battle.config.json.defense', '必须是对象')) {
       this.check(isNumber(root.defense.rageCost) && root.defense.rageCost >= 0, 'battle.config.json.defense.rageCost', '必须 ≥ 0');
+      this.check(isNumber(root.defense.damageScale) && root.defense.damageScale >= 0 && root.defense.damageScale <= 1, 'battle.config.json.defense.damageScale', '必须在 0 ~ 1');
       this.check(isNumber(root.defense.bossRageCutScale) && root.defense.bossRageCutScale >= 0 && root.defense.bossRageCutScale <= 1, 'battle.config.json.defense.bossRageCutScale', '必须在 0 ~ 1');
       this.check(typeof root.defense.reflectOriginalCut === 'boolean', 'battle.config.json.defense.reflectOriginalCut', '必须是布尔值');
     }

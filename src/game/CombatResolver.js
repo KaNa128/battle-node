@@ -50,20 +50,42 @@ export class CombatResolver {
         meta: { side: 'boss', before: bossRage.before, after: bossRage.after, reason: 'reflect' },
       });
 
+      const damage = round1(
+        item.damage * defense.damageScale * (bonus?.damageMultiplier ?? 1),
+      );
+      const hpBefore = player.hp;
+      player.hp = round1(Math.max(0, round1(hpBefore - damage)));
+
       this.emit('block', {
         actor: 'boss',
         target: 'player',
         sourceOpId: `boss_op_${item.seq}`,
-        value: 0,
+        value: damage,
         meta: {
           blockedDamage: item.damage,
+          reducedDamage: damage,
+          damageScale: defense.damageScale,
           reflectedRageCut: reflected,
           animDurationMs: item.animDurationMs,
         },
       });
 
+      // 格挡不再完全免伤：减半后的伤害照常走 damage 事件，UI 与胜负判定复用同一条链路。
+      this.emit('damage', {
+        actor: 'boss',
+        target: 'player',
+        sourceOpId: `boss_op_${item.seq}`,
+        value: damage,
+        meta: {
+          hpBefore,
+          hpAfter: player.hp,
+          blocked: true,
+          animDurationMs: item.animDurationMs,
+        },
+      });
+
       if (bossRage.zeroed && !boss.breaking) boss.breakPending = true;
-      return { blocked: true, damage: 0 };
+      return { blocked: true, damage };
     }
 
     const damage = round1(item.damage * (bonus?.damageMultiplier ?? 1));

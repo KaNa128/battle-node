@@ -36,7 +36,7 @@
     "tooltip.playerRageCut": "削我杀气 {value}",
     "tooltip.specialUse": "消耗特殊次数",
     "tooltip.heal": "回复 {value}",
-    "tooltip.defend": "格挡配对操作",
+    "tooltip.defend": "格挡配对操作，受到的伤害减半",
     "tooltip.switch": "切换手持武器",
     "tooltip.buffEmpty": "本场暂无 Buff",
     "tooltip.buffRemaining": "剩余 {n} 回合",

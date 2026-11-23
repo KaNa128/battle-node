@@ -580,7 +580,7 @@ for each switch 指令 in queue（按 seq 升序）:
 | `queueChanged` | 队列增删 | `queue` |
 | `switch` | 切换执行 | `fromWeaponId`, `toWeaponId` |
 | `damage` | 造成伤害 | `hpBefore`, `hpAfter` |
-| `block` | 格挡成功 | `blockedDamage`, `reflectedRageCut` |
+| `block` | 格挡成功，伤害减半 | `blockedDamage`（原始伤害）, `reducedDamage`, `damageScale`, `reflectedRageCut` |
 | `heal` | 药品生效 | `hpBefore`, `hpAfter` |
 | `rageChange` | 杀气变动 | `side`, `before`, `after`, `reason` |
 | `specialUsesChange` | 特殊次数变动 | `before`, `after` |
@@ -692,6 +692,10 @@ for each switch 指令 in queue（按 seq 升序）:
 | `player.zeroRage.threshold` | number | 固定 `0`，判定 `<=` |
 | `player.zeroRage.refillPerTurn` | integer | 固定 `1` |
 | `boss.break.skipAllOps` | boolean | 破防回合跳过全部操作 |
+| `defense.rageCost` | number | 格挡消耗杀气，固定 `0` |
+| `defense.damageScale` | number | 格挡时受到伤害的乘数，取值 0 ~ 1 |
+| `defense.bossRageCutScale` | number | 格挡时 Boss 削减玩家杀气的乘数 |
+| `defense.reflectOriginalCut` | boolean | 反弹给 Boss 的是否为原始削减量 |
 | `combo.checkAt` | `"preSettlement"` | 连招判定时点 |
 | `display.decimals` | integer | 固定 1 |
 

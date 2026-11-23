@@ -23,8 +23,9 @@ async function setup(seed = 3) {
   return { config, module, events, getPayload: () => payload };
 }
 
-test('格挡：玩家 0 伤害、杀气减半、Boss 反弹原值', async () => {
-  const { module, events } = await setup();
+test('格挡：玩家伤害减半、杀气减半、Boss 反弹原值', async () => {
+  const { config, module, events } = await setup();
+  const damageScale = config.battleConfig.defense.damageScale;
   assert(module.enqueue('defend').ok, '格挡入队');
   module.submitPlan();
 
@@ -34,10 +35,14 @@ test('格挡：玩家 0 伤害、杀气减半、Boss 反弹原值', async () => 
   const expectedCut = block.meta.blockedDamage === 6 ? 1 : 2;
   assertEqual(block.meta.reflectedRageCut, expectedCut, 'Boss 反弹原削减量');
 
-  const playerDamage = events.filter(
-    (event) => event.type === 'damage' && event.target === 'player',
+  const blockedDamage = events.find(
+    (event) => event.type === 'damage' && event.target === 'player' && event.meta.blocked,
   );
-  assertEqual(playerDamage.length >= 0, true, '伤害事件存在');
+  assert(blockedDamage, '格挡应产生伤害事件');
+  const expectedDamage = Math.round(block.meta.blockedDamage * damageScale * 10) / 10;
+  assertEqual(blockedDamage.value, expectedDamage, '格挡后伤害应减半');
+  assert(blockedDamage.value < block.meta.blockedDamage, '格挡后伤害应小于原始伤害');
+
   assertEqual(events[0].type, 'turnStart', '回合开始事件在最前');
 });
 
