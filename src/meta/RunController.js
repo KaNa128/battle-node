@@ -15,9 +15,10 @@ function seedFromString(text) {
 }
 
 export class RunController {
-  constructor({ config, seed = 20261118 }) {
+  constructor({ config, seed = 20261118, saveManager = null }) {
     this.config = config;
     this.seed = seed;
+    this.saveManager = saveManager;
     this.floor = 1;
     this.floorSeed = seedFromString(`${seed}:1`);
     this.nodeId = null;
@@ -36,7 +37,46 @@ export class RunController {
     this.map = generateMap({ floor: this.floor, seed: this.floorSeed, config: this.config });
     this.shopSession = null;
     this.openedChests.clear();
+    this.persist();
     return this.getSnapshot();
+  }
+
+  // 从 SaveManager 迁移后的存档恢复整局进度；地图缺失时按种子重建。
+  restore(record) {
+    if (!record?.player) throw new Error('RunController.restore: 存档缺少玩家数据');
+    this.seed = Number.isInteger(record.seed) ? record.seed : this.seed;
+    this.floor = Number.isInteger(record.floor) && record.floor >= 1 ? record.floor : 1;
+    this.floorSeed = Number.isInteger(record.floorSeed)
+      ? record.floorSeed
+      : seedFromString(`${this.seed}:${this.floor}`);
+    this.nodeId = record.nodeId ?? null;
+    this.runState = new RunState({ config: this.config, savedData: record.player });
+    this.map =
+      record.map && Array.isArray(record.map.nodes) && Array.isArray(record.map.rows)
+        ? deepClone(record.map)
+        : generateMap({ floor: this.floor, seed: this.floorSeed, config: this.config });
+    this.shopSession = null;
+    this.openedChests.clear();
+    return this.getSnapshot();
+  }
+
+  toSaveRecord() {
+    return {
+      seed: this.seed,
+      floor: this.floor,
+      floorSeed: this.floorSeed,
+      nodeId: this.nodeId,
+      player: this.runState ? this.runState.toSavedData() : null,
+      map: this.map ? deepClone(this.map) : null,
+    };
+  }
+
+  // 失败只打日志，不阻塞玩法；IndexedDB 不可用时由 SaveManager 抛错并被这里吞掉。
+  persist() {
+    if (!this.saveManager || !this.runState) return;
+    Promise.resolve(this.saveManager.save(this.toSaveRecord())).catch((error) => {
+      console.error('[存档写入失败]', error);
+    });
   }
 
   resetRun() {
@@ -47,6 +87,9 @@ export class RunController {
     this.floorSeed = seedFromString(`${this.seed}:1`);
     this.shopSession = null;
     this.openedChests.clear();
+    Promise.resolve(this.saveManager?.clear()).catch((error) => {
+      console.error('[存档清理失败]', error);
+    });
   }
 
   hasRun() {
@@ -181,6 +224,7 @@ export class RunController {
       // 普通战斗 +1 技能点，Boss 战 +3。
       this.runState.skillPoints += nodeType === 'boss' ? 3 : 1;
     }
+    this.persist();
     return this.getSnapshot();
   }
 
@@ -201,6 +245,7 @@ export class RunController {
 
     // 只有 Boss 节点完成才进入下一层。
     if (node.type === 'boss') this.advanceFloor();
+    this.persist();
     return this.getSnapshot();
   }
 
@@ -231,12 +276,14 @@ export class RunController {
     const event = this.pickEntry('events', nodeId);
     const choice = event.choices.find((entry) => entry.id === choiceId);
     if (!choice) throw new Error(`RunController.resolveEventChoice: 未知选项 ${choiceId}`);
-    return {
+    const resolved = {
       nodeId,
       choiceId,
       result: choice.result,
       effects: this.applyEffects(choice.effects ?? []),
     };
+    this.persist();
+    return resolved;
   }
 
   getChestSnapshot(nodeId) {
@@ -252,6 +299,7 @@ export class RunController {
     const chest = this.pickEntry('chests', nodeId);
     const rewards = this.applyEffects(chest.rewards ?? []);
     this.openedChests.add(nodeId);
+    this.persist();
     return { nodeId, rewards, alreadyOpened: false };
   }
 
@@ -334,6 +382,7 @@ export class RunController {
     run.gold -= offer.price;
     this.applyOffer(offer);
     session.purchased[key] = true;
+    this.persist();
     return { ok: true, snapshot: this.getShopSnapshot() };
   }
 
@@ -369,6 +418,7 @@ export class RunController {
     for (const offer of column.offers) {
       delete session.purchased[this.offerKey(columnId, offer.id)];
     }
+    this.persist();
     return { ok: true, snapshot: this.getShopSnapshot() };
   }
 
@@ -397,6 +447,7 @@ export class RunController {
 
     run.skillPoints -= skill.cost;
     run.unlockedSkillIds.push(skillId);
+    this.persist();
     return { ok: true, snapshot: this.getSkillTreeSnapshot() };
   }
 
@@ -415,6 +466,7 @@ export class RunController {
     if (!run.consumeEnhanceCount(category)) return { ok: false, reason: 'count' };
 
     run.addEnhanceLevel(weaponId, 1);
+    this.persist();
     return { ok: true, snapshot: this.getInventorySnapshot() };
   }
 }

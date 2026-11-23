@@ -49,7 +49,9 @@ BOSS_INTENT → PLAYER_PLANNING → PRE_CHECK → SETTLEMENT → TURN_END
 
 ## 5. 防御
 
-- 0 耗杀气，完全格挡配对操作的伤害。
+- 0 耗杀气，成功格挡配对操作时**受到的伤害减半**，最终数值 `round1`。
+- 减伤系数由 `battle.config.json.defense.damageScale` 配置（默认 0.5），代码中不得写死。
+- 减半后的伤害仍可致死；结算后照常判定战斗胜负。
 - Boss 对玩家的杀气削减减半：普攻 1 → **0.5**，特殊 2 → **1.0**，不取整。
 - 反弹给 Boss 的是**原削减量**（1.0 / 2.0）。
 

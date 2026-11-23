@@ -4,7 +4,7 @@
 
 - 项目：**2D 回合制武侠肉鸽**，包含战斗节点（Battle Scene）与肉鸽外层（Meta）。
 - 形态：纯前端 H5（HTML / CSS / 原生 ES Module），无框架、无打包器。
-- 当前阶段：战斗 V0.1 已完成；外围系统进入 P1 契约与配置阶段。
+- 当前阶段：战斗 V0.1 已完成；外围 P0~P3 页面骨架与 P4 地基（存档、地图、外围校验）已落地，进入内容扩充与数值平衡阶段。
 - **场景只有三个**：`home`、`map`、`battle`；事件、宝箱、商店、背包、技能树、设置均为全局浮层。
 - 战斗模块作为普通场景嵌入外层，由 `SceneManager` 调度。
 - 每个场景都必须预留背景层，后续可直接替换背景照片。
@@ -28,7 +28,8 @@
 - **V0.1 战斗竖切已实现**：战斗核心、无框尖塔式 UI、背包界面、逻辑测试（`tests/index.html`）。
 - **P0~P3 页面骨架已落地**：场景收敛为 `home / map / battle`；`EventScene` / `ChestScene` 已删除；`OverlayManager` 与六个浮层容器（背包 / 事件 / 宝箱 / 商店 / 技能树 / 设置）可用；HUD、路线图、战斗胜负分流、失败回首页清档已串通。
 - **已补最小配置**：`map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json`，可支撑一局从首页走到 Boss。
-- **待实现 / 待扩充**：独立 Resolver 拆分、IndexedDB 存档与迁移、职业化内容与数值平衡、正式美术与音频；六个浮层当前为可交互骨架，内容需各负责人按目录归属扩充。
+- **P4 地基已落地**：`SaveManager`（IndexedDB 单存档位、`saveVersion` 迁移、导出/导入接口）已接入 `RunController` 与首页「继续」；`Validator` 已覆盖 `map / events / chests / shop / skills / upgrades`，并校验 Effect 引用与技能树无环。
+- **待实现 / 待扩充**：独立 Resolver 拆分、职业化内容与数值平衡、正式美术与音频；六个浮层当前为可交互骨架，内容需各负责人按目录归属扩充。
 - **本期不做**：图鉴、武器异变 / 武器升级树、饰品、铸魂、正式美术与音频。
 
 已确认的产品规则：
@@ -56,7 +57,7 @@
 │  └─ {gifs,icons,audio}/
 ├─ src/
 │  ├─ main.js               # 组合根：配置 → 状态 → 场景 / 浮层注册
-│  ├─ meta/                 # 外层逻辑：SceneManager / RunController / MapGenerator / Resolvers
+│  ├─ meta/                 # 外层逻辑：SceneManager / RunController / MapGenerator / StatsCalculator / SceneContext
 │  ├─ scenes/               # 三个场景 + SceneShell
 │  │  └─ overlays/          # OverlayManager + 六个浮层容器
 │  ├─ game/                 # 纯战斗逻辑，禁止 DOM
@@ -65,7 +66,7 @@
 │  ├─ ui/                   # 战斗渲染 + hud/ + modals/
 │  ├─ styles/
 │  └─ utils/
-└─ tests/                   # 纯逻辑单测（按 game / meta / data / ui 分区）
+└─ tests/                   # 纯逻辑单测（当前平铺于根目录，后续按 game / meta / data / ui 分区）
 ```
 
 ## 命令
@@ -87,7 +88,7 @@ python -m http.server 5173
 5. 指令入队即快照，结算只读快照，不得读当前面板状态。
 6. 玩家持久状态归 `RunState`，不得写入单场 `battleState`；场景与浮层只能通过 `RunController` 改写。
 7. 属性汇总（血量 / 杀气 / 攻击力）只在 meta 计算，UI 只读 `HudSnapshot` / `StatsSnapshot` / `InventorySnapshot`。
-8. 全局背包只有一个浮层；战斗中 `editable = false`，修改类操作置灰。
+8. 全局背包只有一个浮层；战斗中快照带 `inBattle = true`，修改类操作置灰。
 9. 只有 Boss 节点完成才升层；普通战斗胜利只完成节点。
 10. 战斗失败必须停在结算页，点「返回首页」后清档回首页。
 11. 随机数必须走注入的 `Rng`，禁止裸 `Math.random()`。
@@ -115,5 +116,5 @@ python -m http.server 5173
 ## 外部阻塞
 
 - Boss 攻击伤害为占位值（普攻 6 / 特殊 10），用户可随时调整。
-- 美术资源（GIF 立绘、图标、场景背景、事件配图、宝箱 GIF、技能图标、音频）尚未提供，使用占位路径与缺省样式，不阻塞逻辑开发。
-- `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json` 尚未落地，P1 先补契约与配置。
+- 美术资源：玩家 GIF（待机 / 攻击 / 受击，含无背景版）已接入；Boss 立绘、图标、场景背景、事件配图、宝箱 GIF、技能图标与音频仍使用占位路径与缺省样式，不阻塞逻辑开发。
+- `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json` 已有可支撑一局的最小配置，内容仍需 4 号位扩充。

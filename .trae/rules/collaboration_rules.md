@@ -22,6 +22,7 @@
 补充说明：
 
 - `tests/` 整体由 4 号位负责规范与入口；为避免排队，测试用例按二级目录下放写入权：`tests/game/` → 1 号，`tests/meta/` → 3 号，`tests/ui/` → 2 号，`tests/data/` 与 `runner.js`、`index.html` → 4 号。不得改他人子目录。
+- 现状：测试文件平铺在 `tests/` 根目录（`engine / combo / rage / panel / turn-order / config-validation`），尚未建立二级目录；拆分前按“谁负责被测算模块谁维护对应用例”执行，拆分后再按上面的子目录归属落位。
 - `assets/` 由 2 号位独占；背景图文件名由 4 号位在 `scenes.json` 中登记，事件 / 宝箱 / 技能树 / HUD 图标路径分别在 `events.json`、`chests.json`、`skills.json`、`ui.json` 登记，3 号位只引用路径。
 - `config/ui.json` 由 4 号位独占；2 号位与 3 号位需要新文案时，提交文案键需求，由 4 号位落盘。
 - 根目录的 `AGENTS.md`、`PROJECT-STRUCTURE.md` 由 3 号位维护；`SCHEMA.md` 由 4 号位维护；规则文件按上表分文件归属。
@@ -185,7 +186,7 @@
 | `RunController` 方法与 `RunState` 快照（含 `getHudSnapshot` / `getStatsSnapshot` / 商店与技能树意图） | 3 号（状态结构需 1 号确认） | 2 号、4 号 |
 | Scene 生命周期与 `SceneContext` | 3 号 | 2 号、1 号 |
 | `OverlayManager.open / close` 与浮层 id 集合 | 3 号 | 2 号 |
-| `MapGenerator.generate` 输出 `MapGraph` | 3 号 | 4 号、2 号 |
+| `MapGenerator.generateMap` 输出 `MapGraph` | 3 号 | 4 号、2 号 |
 | `scenes.json` / `ui.json` 字段 | 4 号 | 2 号、3 号 |
 | `map.json` / `events.json` / `chests.json` / `shop.json` / `skills.json` 字段 | 4 号 | 2 号、3 号 |
 | `SCHEMA.md` 战斗与外围字段 | 4 号 | 1 号、2 号、3 号 |
@@ -202,11 +203,12 @@
 | 阶段 | 负责人 | 内容 | 验收 |
 |---|---|---|---|
 | P0（已完成） | 3 号 | SceneManager、SceneShell、`Loading...` 转场、基础场景空壳、全局背包浮层 | 场景可切换，无控制台报错 |
-| P1 契约与配置 | 4 号 | `SCHEMA.md` 补地图 / 事件 / 宝箱 / 商店 / 技能树 / 强化 / HUD 契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整，背景路径齐全 |
-| P2 场景收敛与浮层骨架 | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载点与显隐；删除 event / chest 场景 | 任意场景可打开 / 关闭六个浮层，无残留计时器 |
-| P3 HUD 与全局弹窗 UI | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/modals.css` | 桌面与窄屏可用，触屏可操作，数值全部来自快照 |
-| P4 一局闭环 | 3 号 | `RunController` 新字段与意图方法、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档 | 一局可从首页走到 Boss、失败回首页、存档可续 |
-| P5 内容、平衡与联调 | 全员 | 事件 / 宝箱 / 商店 / 技能树内容、数值平衡、存档迁移、回归测试与部署 | 测试全绿，无占位假逻辑，发布说明完成 |
+| P1（已完成） | 4 号 | `SCHEMA.md` 补地图 / 事件 / 宝箱 / 商店 / 技能树 / 强化 / HUD 契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整，背景路径齐全 |
+| P2（已完成） | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载点与显隐；删除 event / chest 场景 | 任意场景可打开 / 关闭六个浮层，无残留计时器 |
+| P3（已完成） | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/modals.css` | 桌面与窄屏可用，触屏可操作，数值全部来自快照 |
+| P4 地基（已完成） | 3 号 | `RunController` 新字段与意图方法、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档、`SaveManager` 存档与恢复 | 一局可从首页走到 Boss、失败回首页、刷新后可续 |
+| P4 收尾（进行中） | 3 号 | 独立 Resolver 拆分、商店会话与强化细节补全、存档边界场景回归 | 无内联重复结算逻辑，回归全绿 |
+| P5 内容、平衡与联调 | 全员 | 事件 / 宝箱 / 商店 / 技能树内容、数值平衡、正式资源、回归测试与部署 | 测试全绿，无占位假逻辑，发布说明完成 |
 
 并行前提：
 

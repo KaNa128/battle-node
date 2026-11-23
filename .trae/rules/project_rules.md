@@ -30,7 +30,7 @@ game           ✗→ DOM / ui / meta / scenes
 meta           ✗→ ui / scenes（场景工厂与渲染宿主由 main.js 注入）
 ```
 
-- `src/meta/`：外层逻辑（SceneManager、RunController、MapGenerator、EventResolver、ChestResolver、ShopService、SkillTree、StatsCalculator、RewardSystem），不访问 DOM，不 import `scenes/` 与 `ui/`。
+- `src/meta/`：外层逻辑（SceneManager、RunController、MapGenerator、StatsCalculator、SceneContext），不访问 DOM，不 import `scenes/` 与 `ui/`；事件 / 宝箱 / 商店 / 技能树结算当前内联在 `RunController`，`EventResolver / ChestResolver / ShopService / SkillTree / RewardSystem` 为后续拆分计划。
 - `src/scenes/`：只有 `SceneShell` 与 `HomeScene / MapScene / BattleScene`；场景内不放事件、宝箱、商店、背包、技能树、设置的实现。
 - `src/scenes/overlays/`：`OverlayManager` 与六个浮层容器（`inventory / event / chest / shop / skills / settings`），只负责挂载、焦点、开关与意图转发，不计算数值。
 - `src/game/`：纯战斗逻辑，可脱离浏览器单测；禁止 import `ui/`、`scenes/`、`meta/`，禁止访问 DOM。
@@ -97,7 +97,7 @@ meta           ✗→ ui / scenes（场景工厂与渲染宿主由 main.js 注�
 ### 4.5 背包、属性与强化
 
 - 全局唯一背包弹窗：左侧全部装备列表（含类别筛选），中间已装备槽位，右侧综合属性（血量 / 杀气 / 攻击力等）。
-- 战斗外可强化、换装、使用；战斗中将强化、换装等**修改类操作置灰**，筛选、悬停、查看保持可用。
+- 当前仅强化可用；换装与使用药品为预留能力，UI 暂不提供入口。战斗中将强化等修改类操作置灰，筛选、悬停、查看保持可用。
 - 强化是装备强化等级：每强化一次消耗 1 次对应类别次数，单件上限 30 级；次数分普通武器 / 特殊武器 / 药品三类，可由事件与商店产出。
 - 强化等级与剩余次数写入 `RunState` 并纳入存档。
 - 属性汇总（`maxHp`、`maxRage`、`attackPower` 等）由 meta 的 `StatsCalculator` 统一计算并输出快照；UI 不得自行叠加加成。
@@ -105,9 +105,9 @@ meta           ✗→ ui / scenes（场景工厂与渲染宿主由 main.js 注�
 
 ### 4.6 路线图
 
-- `MapGenerator` 是纯函数 + 注入 `Rng`，输入 `{ floor, seed, config }`，输出 `MapGraph`。
+- `MapGenerator` 是确定性函数，输入 `{ floor, seed, config }`，输出 `MapGraph`；内部用 `seed` 构造 `Rng`，不访问 `Math.random()`。
 - 每层从底部固定的初始特殊事件出发向上分叉；战斗、事件、宝箱、商店按权重随机安插；顶部为该层唯一 Boss。
-- 每层生成后立即写入 `RunState`，当层内节点固定不变；重进路线图读存档，不重新生成。
+- 每层生成后由 `RunController` 持有并随存档落盘，当层内节点固定不变；重进路线图读存档，不重新生成。
 - 玩家只能选择与当前节点连通的下一层节点。
 - 节点完成后记录到 `completedNodeIds`；**只有 Boss 节点完成才调用 `advanceFloor()`**。
 

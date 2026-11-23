@@ -8,6 +8,11 @@ const SCOPES = ['global', 'weapon', 'boss'];
 const BREAK_MODES = ['reset', 'ignore'];
 const APPLY_TOS = ['patternLastOp', 'patternAllOps'];
 const UNLOCK_TYPES = ['none', 'upgradeNode'];
+const MAP_NODE_TYPES = ['battle', 'event', 'chest', 'shop', 'boss'];
+const EFFECT_KINDS = ['gold', 'hp', 'skillPoint', 'enhanceCount', 'item'];
+const SKILL_BRANCHES = ['root', 'purple', 'cyan', 'red'];
+const ENHANCE_CATEGORIES = ['normalWeapon', 'specialWeapon', 'item'];
+const SHOP_COLUMN_KINDS = { weapons: 'weapon', items: 'item', enhance: 'enhance' };
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -40,6 +45,7 @@ class ConfigValidator {
     this.itemsById = new Map();
     this.combosById = new Map();
     this.effectIds = new Set();
+    this.enhanceCategoryIds = new Set();
   }
 
   fail(path, message) {
@@ -68,6 +74,12 @@ class ConfigValidator {
     this.validateCombos();
     this.validateBosses();
     this.validateItems();
+    this.validateUpgrades();
+    this.validateMap();
+    this.validateEvents();
+    this.validateChests();
+    this.validateShop();
+    this.validateSkills();
     this.validateScenes();
     this.validateUi();
     this.validateBattleConfig();
@@ -452,6 +464,378 @@ class ConfigValidator {
     }
   }
 
+  validateEffect(effect, path) {
+    if (!isPlainObject(effect)) {
+      this.fail(path, '必须是对象');
+      return;
+    }
+    if (!this.check(EFFECT_KINDS.includes(effect.kind), `${path}.kind`, `必须是 ${EFFECT_KINDS.join(' / ')}`)) {
+      return;
+    }
+    this.check(isInteger(effect.value), `${path}.value`, '必须是整数');
+
+    if (effect.kind === 'item') {
+      if (this.check(isNonEmptyString(effect.itemId), `${path}.itemId`, 'item 效果必须提供 itemId')) {
+        if (!this.itemsById.has(effect.itemId)) {
+          this.fail(`${path}.itemId`, `引用了不存在的物品：${effect.itemId}`);
+        }
+      }
+    }
+    if (effect.kind === 'enhanceCount') {
+      if (this.check(isNonEmptyString(effect.enhanceCategory), `${path}.enhanceCategory`, 'enhanceCount 效果必须提供 enhanceCategory')) {
+        if (!this.enhanceCategoryIds.has(effect.enhanceCategory)) {
+          this.fail(`${path}.enhanceCategory`, `未知强化类别：${effect.enhanceCategory}`);
+        }
+      }
+    }
+  }
+
+  validateUpgrades() {
+    const root = this.config.upgrades;
+    if (!this.validateFile(root, 'upgrades.json')) return;
+    if (!this.check(isPlainObject(root.enhancement), 'upgrades.json.enhancement', '必须是对象')) return;
+
+    const enhancement = root.enhancement;
+    this.check(
+      isInteger(enhancement.maxLevel) && enhancement.maxLevel >= 1,
+      'upgrades.json.enhancement.maxLevel',
+      '必须是 ≥ 1 的整数',
+    );
+
+    if (!this.check(
+      Array.isArray(enhancement.categories) && enhancement.categories.length > 0,
+      'upgrades.json.enhancement.categories',
+      '必须是非空数组',
+    )) return;
+
+    enhancement.categories.forEach((category, index) => {
+      const path = `upgrades.json.enhancement.categories[${index}]`;
+      if (!isPlainObject(category)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(category.id), `${path}.id`, '必填非空字符串')) return;
+      if (this.enhanceCategoryIds.has(category.id)) {
+        this.fail(`${path}.id`, `强化类别重复：${category.id}`);
+      }
+      this.enhanceCategoryIds.add(category.id);
+      this.check(ENHANCE_CATEGORIES.includes(category.id), `${path}.id`, `必须是 ${ENHANCE_CATEGORIES.join(' / ')}`);
+      this.check(isNonEmptyString(category.labelKey), `${path}.labelKey`, '必填非空字符串');
+      this.check(
+        isInteger(category.initialCount) && category.initialCount >= 0,
+        `${path}.initialCount`,
+        '必须是 ≥ 0 的整数',
+      );
+    });
+  }
+
+  validateMap() {
+    const root = this.config.map;
+    if (!this.validateFile(root, 'map.json')) return;
+
+    this.check(isInteger(root.rows) && root.rows >= 3, 'map.json.rows', '必须是 ≥ 3 的整数');
+    this.check(root.startType === 'event', 'map.json.startType', '必须是 event');
+    this.check(root.bossType === 'boss', 'map.json.bossType', '必须是 boss');
+
+    if (this.check(isPlainObject(root.columns), 'map.json.columns', '必须是对象')) {
+      const { min, max } = root.columns;
+      const minOk = this.check(isInteger(min) && min >= 1, 'map.json.columns.min', '必须是 ≥ 1 的整数');
+      const maxOk = this.check(isInteger(max) && max >= 1, 'map.json.columns.max', '必须是 ≥ 1 的整数');
+      if (minOk && maxOk) this.check(min <= max, 'map.json.columns', 'min 不能大于 max');
+    }
+
+    if (!this.check(
+      Array.isArray(root.nodeTypes) && root.nodeTypes.length > 0,
+      'map.json.nodeTypes',
+      '必须是非空数组',
+    )) return;
+
+    const ids = new Set();
+    let totalWeight = 0;
+    root.nodeTypes.forEach((nodeType, index) => {
+      const path = `map.json.nodeTypes[${index}]`;
+      if (!isPlainObject(nodeType)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(nodeType.id), `${path}.id`, '必填非空字符串')) return;
+      if (ids.has(nodeType.id)) this.fail(`${path}.id`, `节点类型重复：${nodeType.id}`);
+      ids.add(nodeType.id);
+      this.check(MAP_NODE_TYPES.includes(nodeType.id), `${path}.id`, `必须是 ${MAP_NODE_TYPES.join(' / ')}`);
+      if (this.check(
+        isInteger(nodeType.weight) && nodeType.weight >= 0,
+        `${path}.weight`,
+        '必须是 ≥ 0 的整数',
+      )) {
+        totalWeight += nodeType.weight;
+      }
+    });
+
+    this.check(ids.has('battle'), 'map.json.nodeTypes', '必须包含 battle 类型');
+    this.check(totalWeight > 0, 'map.json.nodeTypes', '权重之和必须大于 0');
+  }
+
+  validateEvents() {
+    const root = this.config.events;
+    if (!this.validateFile(root, 'events.json')) return;
+    if (!this.check(
+      Array.isArray(root.events) && root.events.length > 0,
+      'events.json.events',
+      '必须是非空数组',
+    )) return;
+
+    const ids = new Set();
+    root.events.forEach((event, index) => {
+      const path = `events.json.events[${index}]`;
+      if (!isPlainObject(event)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(event.id), `${path}.id`, '必填非空字符串')) return;
+      if (ids.has(event.id)) this.fail(`${path}.id`, `事件 id 重复：${event.id}`);
+      ids.add(event.id);
+
+      this.check(isNonEmptyString(event.title), `${path}.title`, '必填非空字符串');
+      this.check(isNonEmptyString(event.description), `${path}.description`, '必填非空字符串');
+      if (this.check(isNonEmptyString(event.image), `${path}.image`, '必填非空字符串')) {
+        this.check(event.image.startsWith('assets/events/'), `${path}.image`, '必须是 assets/events/ 下的相对路径');
+      }
+
+      if (!this.check(
+        Array.isArray(event.choices) && event.choices.length === 3,
+        `${path}.choices`,
+        '必须是长度为 3 的数组',
+      )) return;
+
+      const choiceIds = new Set();
+      event.choices.forEach((choice, choiceIndex) => {
+        const choicePath = `${path}.choices[${choiceIndex}]`;
+        if (!isPlainObject(choice)) {
+          this.fail(choicePath, '必须是对象');
+          return;
+        }
+        if (!this.check(isNonEmptyString(choice.id), `${choicePath}.id`, '必填非空字符串')) return;
+        if (choiceIds.has(choice.id)) this.fail(`${choicePath}.id`, `选项 id 重复：${choice.id}`);
+        choiceIds.add(choice.id);
+
+        this.check(isNonEmptyString(choice.label), `${choicePath}.label`, '必填非空字符串');
+        this.check(isNonEmptyString(choice.result), `${choicePath}.result`, '必填非空字符串');
+        if (this.check(Array.isArray(choice.effects), `${choicePath}.effects`, '必须是数组')) {
+          choice.effects.forEach((effect, effectIndex) => {
+            this.validateEffect(effect, `${choicePath}.effects[${effectIndex}]`);
+          });
+        }
+      });
+    });
+  }
+
+  validateChests() {
+    const root = this.config.chests;
+    if (!this.validateFile(root, 'chests.json')) return;
+    if (!this.check(
+      Array.isArray(root.chests) && root.chests.length > 0,
+      'chests.json.chests',
+      '必须是非空数组',
+    )) return;
+
+    const ids = new Set();
+    root.chests.forEach((chest, index) => {
+      const path = `chests.json.chests[${index}]`;
+      if (!isPlainObject(chest)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(chest.id), `${path}.id`, '必填非空字符串')) return;
+      if (ids.has(chest.id)) this.fail(`${path}.id`, `宝箱 id 重复：${chest.id}`);
+      ids.add(chest.id);
+
+      this.check(isNonEmptyString(chest.name), `${path}.name`, '必填非空字符串');
+      if (this.check(isNonEmptyString(chest.gif), `${path}.gif`, '必填非空字符串')) {
+        this.check(chest.gif.startsWith('assets/chests/'), `${path}.gif`, '必须是 assets/chests/ 下的相对路径');
+      }
+      if (this.check(Array.isArray(chest.rewards), `${path}.rewards`, '必须是数组')) {
+        chest.rewards.forEach((reward, rewardIndex) => {
+          this.validateEffect(reward, `${path}.rewards[${rewardIndex}]`);
+        });
+      }
+    });
+  }
+
+  validateShop() {
+    const root = this.config.shop;
+    if (!this.validateFile(root, 'shop.json')) return;
+    if (!this.check(
+      Array.isArray(root.columns) && root.columns.length > 0,
+      'shop.json.columns',
+      '必须是非空数组',
+    )) return;
+
+    const columnIds = new Set();
+    const offerIds = new Set();
+    root.columns.forEach((column, index) => {
+      const path = `shop.json.columns[${index}]`;
+      if (!isPlainObject(column)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(column.id), `${path}.id`, '必填非空字符串')) return;
+      if (columnIds.has(column.id)) this.fail(`${path}.id`, `商店栏位重复：${column.id}`);
+      columnIds.add(column.id);
+      if (!this.check(
+        Object.prototype.hasOwnProperty.call(SHOP_COLUMN_KINDS, column.id),
+        `${path}.id`,
+        `必须是 ${Object.keys(SHOP_COLUMN_KINDS).join(' / ')}`,
+      )) return;
+
+      this.check(isNonEmptyString(column.titleKey), `${path}.titleKey`, '必填非空字符串');
+      if (this.check(isPlainObject(column.refresh), `${path}.refresh`, '必须是对象')) {
+        this.check(
+          isInteger(column.refresh.baseCost) && column.refresh.baseCost >= 0,
+          `${path}.refresh.baseCost`,
+          '必须是 ≥ 0 的整数',
+        );
+        this.check(
+          isInteger(column.refresh.costStep) && column.refresh.costStep >= 0,
+          `${path}.refresh.costStep`,
+          '必须是 ≥ 0 的整数',
+        );
+      }
+
+      if (!this.check(
+        Array.isArray(column.offers) && column.offers.length > 0,
+        `${path}.offers`,
+        '必须是非空数组',
+      )) return;
+
+      const expectedKind = SHOP_COLUMN_KINDS[column.id];
+      column.offers.forEach((offer, offerIndex) => {
+        const offerPath = `${path}.offers[${offerIndex}]`;
+        if (!isPlainObject(offer)) {
+          this.fail(offerPath, '必须是对象');
+          return;
+        }
+        if (!this.check(isNonEmptyString(offer.id), `${offerPath}.id`, '必填非空字符串')) return;
+        if (offerIds.has(offer.id)) this.fail(`${offerPath}.id`, `商品 id 重复：${offer.id}`);
+        offerIds.add(offer.id);
+
+        this.check(offer.kind === expectedKind, `${offerPath}.kind`, `必须是 ${expectedKind}`);
+        this.check(isInteger(offer.price) && offer.price >= 0, `${offerPath}.price`, '必须是 ≥ 0 的整数');
+
+        if (offer.kind === 'weapon') {
+          if (this.check(isNonEmptyString(offer.weaponId), `${offerPath}.weaponId`, '武器商品必须提供 weaponId')) {
+            if (!this.weaponsById.has(offer.weaponId)) {
+              this.fail(`${offerPath}.weaponId`, `引用了不存在的武器：${offer.weaponId}`);
+            }
+          }
+        } else if (offer.kind === 'item') {
+          if (this.check(isNonEmptyString(offer.itemId), `${offerPath}.itemId`, '物品商品必须提供 itemId')) {
+            if (!this.itemsById.has(offer.itemId)) {
+              this.fail(`${offerPath}.itemId`, `引用了不存在的物品：${offer.itemId}`);
+            }
+          }
+        } else if (offer.kind === 'enhance') {
+          if (this.check(isNonEmptyString(offer.enhanceCategory), `${offerPath}.enhanceCategory`, '强化商品必须提供 enhanceCategory')) {
+            if (!this.enhanceCategoryIds.has(offer.enhanceCategory)) {
+              this.fail(`${offerPath}.enhanceCategory`, `未知强化类别：${offer.enhanceCategory}`);
+            }
+          }
+          this.check(
+            isInteger(offer.amount) && offer.amount >= 1,
+            `${offerPath}.amount`,
+            '必须是 ≥ 1 的整数',
+          );
+        }
+      });
+    });
+  }
+
+  validateSkills() {
+    const root = this.config.skills;
+    if (!this.validateFile(root, 'skills.json')) return;
+    if (!this.check(
+      Array.isArray(root.skills) && root.skills.length > 0,
+      'skills.json.skills',
+      '必须是非空数组',
+    )) return;
+
+    const skills = new Map();
+    root.skills.forEach((skill, index) => {
+      const path = `skills.json.skills[${index}]`;
+      if (!isPlainObject(skill)) {
+        this.fail(path, '必须是对象');
+        return;
+      }
+      if (!this.check(isNonEmptyString(skill.id), `${path}.id`, '必填非空字符串')) return;
+      if (skills.has(skill.id)) this.fail(`${path}.id`, `技能 id 重复：${skill.id}`);
+      skills.set(skill.id, skill);
+
+      this.check(isNonEmptyString(skill.name), `${path}.name`, '必填非空字符串');
+      this.check(isNonEmptyString(skill.description), `${path}.description`, '必填非空字符串');
+      this.check(SKILL_BRANCHES.includes(skill.branch), `${path}.branch`, `必须是 ${SKILL_BRANCHES.join(' / ')}`);
+      this.check(isInteger(skill.cost) && skill.cost >= 0, `${path}.cost`, '必须是 ≥ 0 的整数');
+      this.check(isInteger(skill.row) && skill.row >= 0, `${path}.row`, '必须是 ≥ 0 的整数');
+      this.check(isInteger(skill.col) && skill.col >= 0, `${path}.col`, '必须是 ≥ 0 的整数');
+      this.check(Array.isArray(skill.prerequisiteIds), `${path}.prerequisiteIds`, '必须是数组');
+    });
+
+    root.skills.forEach((skill, index) => {
+      const path = `skills.json.skills[${index}]`;
+      if (!Array.isArray(skill.prerequisiteIds)) return;
+      skill.prerequisiteIds.forEach((prerequisiteId, prerequisiteIndex) => {
+        const prerequisitePath = `${path}.prerequisiteIds[${prerequisiteIndex}]`;
+        if (!isNonEmptyString(prerequisiteId)) {
+          this.fail(prerequisitePath, '必须是非空字符串');
+          return;
+        }
+        if (prerequisiteId === skill.id) {
+          this.fail(prerequisitePath, '不能以自身为前置');
+          return;
+        }
+        if (!skills.has(prerequisiteId)) {
+          this.fail(prerequisitePath, `引用了不存在的技能：${prerequisiteId}`);
+        }
+      });
+    });
+
+    const roots = root.skills.filter(
+      (skill) => Array.isArray(skill.prerequisiteIds) && skill.prerequisiteIds.length === 0,
+    );
+    this.check(roots.length === 1, 'skills.json.skills', '必须有且仅有一个无前置的根节点');
+    if (roots.length === 1) {
+      this.check(roots[0].branch === 'root', 'skills.json.skills', '根节点 branch 必须是 root');
+      this.check(roots[0].cost === 0, 'skills.json.skills', '根节点 cost 必须为 0');
+    }
+
+    const cycle = this.findSkillCycle(skills);
+    if (cycle) this.fail('skills.json.skills', `前置关系存在环：${cycle.join(' → ')}`);
+  }
+
+  // DFS 三色标记，返回环上的节点序列，便于直接定位配置错误。
+  findSkillCycle(skills) {
+    const state = new Map();
+
+    const visit = (id, trail) => {
+      const current = state.get(id) ?? 0;
+      if (current === 2) return null;
+      if (current === 1) return [...trail, id];
+
+      state.set(id, 1);
+      for (const prerequisiteId of skills.get(id)?.prerequisiteIds ?? []) {
+        if (!skills.has(prerequisiteId)) continue;
+        const cycle = visit(prerequisiteId, [...trail, id]);
+        if (cycle) return cycle;
+      }
+      state.set(id, 2);
+      return null;
+    };
+
+    for (const id of skills.keys()) {
+      const cycle = visit(id, []);
+      if (cycle) return cycle;
+    }
+    return null;
+  }
+
   validateBattleConfig() {
     const root = this.config.battleConfig;
     if (!this.validateFile(root, 'battle.config.json')) return;
@@ -481,6 +865,7 @@ class ConfigValidator {
 
     if (this.check(isPlainObject(root.defense), 'battle.config.json.defense', '必须是对象')) {
       this.check(isNumber(root.defense.rageCost) && root.defense.rageCost >= 0, 'battle.config.json.defense.rageCost', '必须 ≥ 0');
+      this.check(isNumber(root.defense.damageScale) && root.defense.damageScale >= 0 && root.defense.damageScale <= 1, 'battle.config.json.defense.damageScale', '必须在 0 ~ 1');
       this.check(isNumber(root.defense.bossRageCutScale) && root.defense.bossRageCutScale >= 0 && root.defense.bossRageCutScale <= 1, 'battle.config.json.defense.bossRageCutScale', '必须在 0 ~ 1');
       this.check(typeof root.defense.reflectOriginalCut === 'boolean', 'battle.config.json.defense.reflectOriginalCut', '必须是布尔值');
     }
