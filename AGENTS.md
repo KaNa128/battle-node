@@ -28,7 +28,8 @@
 - **V0.1 战斗竖切已实现**：战斗核心、无框尖塔式 UI、背包界面、逻辑测试（`tests/index.html`）。
 - **P0~P3 页面骨架已落地**：场景收敛为 `home / map / battle`；`EventScene` / `ChestScene` 已删除；`OverlayManager` 与六个浮层容器（背包 / 事件 / 宝箱 / 商店 / 技能树 / 设置）可用；HUD、路线图、战斗胜负分流、失败回首页清档已串通。
 - **已补最小配置**：`map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json`，可支撑一局从首页走到 Boss。
-- **待实现 / 待扩充**：独立 Resolver 拆分、IndexedDB 存档与迁移、职业化内容与数值平衡、正式美术与音频；六个浮层当前为可交互骨架，内容需各负责人按目录归属扩充。
+- **P4 地基已落地**：`SaveManager`（IndexedDB 单存档位、`saveVersion` 迁移、导出/导入接口）已接入 `RunController` 与首页「继续」；`Validator` 已覆盖 `map / events / chests / shop / skills / upgrades`，并校验 Effect 引用与技能树无环。
+- **待实现 / 待扩充**：独立 Resolver 拆分、职业化内容与数值平衡、正式美术与音频；六个浮层当前为可交互骨架，内容需各负责人按目录归属扩充。
 - **本期不做**：图鉴、武器异变 / 武器升级树、饰品、铸魂、正式美术与音频。
 
 已确认的产品规则：

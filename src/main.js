@@ -6,6 +6,7 @@ import { validateConfig } from './data/Validator.js';
 import { Rng } from './game/Rng.js';
 import { BattleModule } from './game/BattleModule.js';
 import { RunController } from './meta/RunController.js';
+import { SaveManager } from './state/SaveManager.js';
 import { SceneManager } from './meta/SceneManager.js';
 import { createSceneContext } from './meta/SceneContext.js';
 import { SceneShell } from './scenes/SceneShell.js';
@@ -46,7 +47,17 @@ async function boot() {
     const transitionMs = config.scenes.transition?.durationMs ?? 320;
     const texts = config.ui.texts;
 
-    const runController = new RunController({ config, seed });
+    const saveManager = new SaveManager({
+      schemaVersion: config.battleConfig.schemaVersion ?? 1,
+    });
+    const runController = new RunController({ config, seed, saveManager });
+    // 读取失败（含高版本存档）只提示，不清理用户存档。
+    try {
+      const saved = await saveManager.load();
+      if (saved) runController.restore(saved);
+    } catch (error) {
+      console.warn('读取存档失败，本次按新开局处理：', error);
+    }
     const shell = new SceneShell({ root, config, transitionMs });
 
     const overlays = {
@@ -95,7 +106,7 @@ async function boot() {
     // 调试入口：?scene=battle 直接进战斗，?scene=map 直接进路线图。
     const requested = query.get('scene');
     if (requested === 'battle' || requested === 'map') {
-      runController.startRun({ floor });
+      if (!runController.hasRun()) runController.startRun({ floor });
     }
 
     await manager.start(requested ?? 'home', {
@@ -105,7 +116,7 @@ async function boot() {
     });
 
     // 预留: 供控制台调试与自动化验收使用。
-    window.game = { manager, runController, shell, overlayManager };
+    window.game = { manager, runController, shell, overlayManager, saveManager };
   } catch (error) {
     console.error(error);
     showBootError(root, error);

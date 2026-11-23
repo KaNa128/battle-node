@@ -42,12 +42,12 @@
 - `bosses.reward.dropPoolId` 必须存在于 `drops.json`。
 - `combos.weaponId` / `bossId` 必须存在。
 - `scenes.scenes[*].id` 只能是 `home` / `map` / `battle`；`background` 必须是 `assets/backgrounds/` 下的相对路径；文件缺失时由样式兜底，但键不得缺失。
-- `map.nodeTypes[].id` 必须属于 `battle / event / chest / shop / boss`；战斗与 Boss 节点必须能在 `levels.json` / `bosses.json` 解析到对应敌人。
-- `events[].choices[].effects[].itemId` / `dropPoolId` / `enhanceCategory` 必须存在；选项数量固定为 3。
-- `chests[].rewards[].dropPoolId` / `itemId` 必须存在；`gif` 必须是 `assets/chests/` 下的相对路径。
-- `shop.columns[].offers[].weaponId` / `itemId` / `enhanceCategory` 必须存在；每栏至少 1 个 offer。
+- `map.nodeTypes[].id` 必须属于 `battle / event / chest / shop / boss`；权重为非负整数且总和大于 0，必须包含 `battle`。
+- `events[].choices[].effects[]` 使用 `{ kind, value, itemId?, enhanceCategory? }`；`kind` 只能是 `gold / hp / skillPoint / enhanceCount / item`，`itemId` / `enhanceCategory` 必须存在；选项数量固定为 3，`image` 必须在 `assets/events/` 下。
+- `chests[].rewards[]` 使用与事件相同的 Effect 结构；`gif` 必须是 `assets/chests/` 下的相对路径。
+- `shop.columns[].offers[].weaponId` / `itemId` / `enhanceCategory` 必须存在；`kind` 必须与栏位匹配（`weapons → weapon`、`items → item`、`enhance → enhance`），每栏至少 1 个 offer。
 - `shop.columns[].refresh.baseCost` / `costStep` 为非负整数；刷新涨价规则由这两项表达，不写公式。
-- `skills.root` 必须存在且唯一；`prerequisiteIds` 必须存在且无环；`branch` 只能是 `root / purple / cyan / red`。
+- `skills[].prerequisiteIds` 必须存在且无环；必须存在且仅存在 1 个无前置的 `root` 节点，`branch` 只能是 `root / purple / cyan / red`。
 - `upgrades.enhancement.categories[].id` 只能是 `normalWeapon / specialWeapon / item`。
 - `Validator` 在启动时校验，失败即抛错并输出具体路径。
 
@@ -72,29 +72,34 @@
 
 `saveVersion` 与 `schemaVersion` 必须同时写入；结构变更时提升 `saveVersion` 并补迁移函数。
 
-`runState` 字段：
+`SaveRecord`（`SaveManager` 单存档位落盘结构）：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
+| `saveVersion` / `schemaVersion` | integer | 存档结构版本 / 配置契约版本 |
+| `savedAt` | integer | 写入时间戳 |
 | `seed` | integer | 本局总种子 |
 | `floor` | integer | 当前楼层，从 1 开始 |
 | `floorSeed` | integer | 当前层地图种子，升层时重算 |
-| `mapNodes` | MapNode[] | 当前层节点（结构见 `SCHEMA.md`） |
-| `completedNodeIds` | string[] | 已完成节点 id |
-| `currentNodeId` | string \| null | 当前所在节点 |
+| `nodeId` | string \| null | 当前所在节点 |
+| `player` | object | `RunState.toSavedData()` 输出 |
+| `map` | MapGraph \| null | 当前层地图，缺失时按种子重建 |
+
+`player`（`runState`）字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
 | `hp` | number | 当前血量 |
-| `maxHp` | number | 血量上限（含强化与技能加成） |
+| `maxHp` | number | 血量上限 |
 | `gold` | integer | 金币，非负 |
 | `skillPoints` | integer | 可用技能点 |
 | `unlockedSkillIds` | string[] | 已点亮技能节点 |
 | `normalWeapons` | string[2] | 两把普通武器 |
 | `specialWeapons` | string[2] | 巨斧 / 弓箭 |
+| `ownedWeaponIds` | string[] | 已拥有武器，用于商店去重 |
 | `items` | object | 药品 id → 剩余次数 |
 | `enhanceCounts` | object | `normalWeapon / specialWeapon / item` → 剩余强化次数 |
 | `enhanceLevels` | object | 装备 id → 强化等级（0~30） |
-| `upgrades` | object | 升级等级（预留） |
-| `soulforge` | object | 铸魂状态（预留） |
-| `accessories` | string[] | 饰品（预留） |
 
 约束：
 
