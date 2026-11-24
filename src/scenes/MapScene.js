@@ -1,19 +1,15 @@
 // 路线图：自下而上分叉，底部固定起始事件，顶部唯一 Boss。
 // 只读 MapSnapshot，点击已连通的节点发起跳转或打开浮层。
+// 棋盘渲染交给 ui/map/MapBoardView，本文件只保留导航规则。
 
-const TYPE_GLYPH_KEY = {
-  battle: 'scene.map.node.battle',
-  event: 'scene.map.node.event',
-  chest: 'scene.map.node.chest',
-  shop: 'scene.map.node.shop',
-  boss: 'scene.map.node.boss',
-};
+import { MapBoardView } from '../ui/map/MapBoardView.js';
 
 export function createMapScene() {
   let ctx;
   let root;
   let subtitle;
   let board;
+  let boardView;
   let snapshot = null;
 
   function nodeById(id) {
@@ -46,6 +42,7 @@ export function createMapScene() {
 
     board = document.createElement('div');
     board.className = 'map-scene__board';
+    boardView = new MapBoardView({ texts: ctx.texts });
 
     const footer = document.createElement('div');
     footer.className = 'map-scene__footer';
@@ -67,50 +64,10 @@ export function createMapScene() {
       String(snapshot.floor),
     );
 
-    board.innerHTML = '';
-    const byRow = new Map();
-    for (const node of snapshot.nodes) {
-      if (!byRow.has(node.row)) byRow.set(node.row, []);
-      byRow.get(node.row).push(node);
-    }
-
-    const rows = [...byRow.keys()].sort((a, b) => b - a);
-    for (const row of rows) {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'map-scene__row';
-      const nodes = byRow.get(row).sort((a, b) => a.col - b.col);
-      for (const node of nodes) {
-        rowEl.appendChild(buildNode(node));
-      }
-      board.appendChild(rowEl);
-    }
-  }
-
-  function buildNode(node) {
-    const completed = snapshot.completedNodeIds.includes(node.id);
-    const available = isAvailable(node);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `map-node map-node--${node.type}`;
-    button.classList.toggle('is-available', available);
-    button.classList.toggle('is-completed', completed);
-    button.classList.toggle('is-current', snapshot.currentNodeId === node.id);
-    button.disabled = completed || !available;
-
-    const glyph = document.createElement('span');
-    glyph.className = 'map-node__glyph';
-    glyph.textContent = ctx.texts[TYPE_GLYPH_KEY[node.type]] ?? '?';
-    button.appendChild(glyph);
-
-    if (snapshot.currentNodeId === node.id) {
-      const badge = document.createElement('span');
-      badge.className = 'map-node__badge';
-      badge.textContent = ctx.texts['scene.map.current'];
-      button.appendChild(badge);
-    }
-
-    button.addEventListener('click', () => handleNode(node));
-    return button;
+    boardView.render(board, snapshot, {
+      isAvailable,
+      onSelect: handleNode,
+    });
   }
 
   async function handleNode(node) {
@@ -141,6 +98,7 @@ export function createMapScene() {
     leave() {},
 
     destroy() {
+      boardView?.destroy();
       root?.remove();
     },
   };
