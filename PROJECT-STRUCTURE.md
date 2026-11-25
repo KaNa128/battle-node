@@ -10,7 +10,7 @@ d:\AICode\
 ├─ index.html                        # 唯一页面入口，加载 src/main.js（type="module"）
 ├─ AGENTS.md                         # AI 协作说明
 ├─ PROJECT-STRUCTURE.md              # 本文件：目录、路由、数据流
-├─ SCHEMA.md                         # 武器 / Boss / 操作序列字段契约
+├─ SCHEMA.md                         # 战斗 + 外层 + 快照的唯一字段契约
 ├─ .trae/
 │  └─ rules/
 │     ├─ project_rules.md            # 范围 / 分层 / 契约 / 风格
@@ -36,7 +36,7 @@ d:\AICode\
 
 > `accessories.json`、`soulforge.json`、`drops.json`、`levels.json` 本期未落地，不在 `ConfigLoader` 加载列表内。
 
-├─ assets/                           # 目前仅玩家 GIF 已落地，其余为占位路径
+├─ assets/                           # 目前仅 assets/gifs/player/ 已落地，其余目录暂未创建
 │  ├─ backgrounds/                   # 场景背景图（home / map / battle，暂缺）
 │  ├─ events/                        # 事件配图（暂缺）
 │  ├─ chests/                        # 宝箱合盖图与开箱 GIF（暂缺）
@@ -199,7 +199,7 @@ game              → 无反向依赖
 |---|---|
 | `meta/SceneManager.js` | 路由状态机：当前场景、切换、参数、返回栈、生命周期调用；不创建 DOM |
 | `scenes/SceneShell.js` | 渲染宿主：背景层、HUD 挂载点、内容容器、转场遮罩、浮层宿主、`data-scene` 标记 |
-| `meta/SceneContext.js` | 场景能力集合：`navigate`、`getRunSnapshot`、`getHudSnapshot`、`openOverlay`、`openInventory`、`config`、`texts` |
+| `meta/SceneContext.js` | 场景能力集合：`navigate` / `back` / `current` / `onChange`、`hasRun` / `startRun` / `abandonRun`、各快照（run / hud / stats / inventory / map / event / chest / shop / skillTree）、事件 / 宝箱 / 商店 / 技能树 / 强化意图、`getBattleInput` / `applyBattleResult` / `completeNode`、`openOverlay` / `openInventory` / `closeOverlay` / `closeInventory`、`createBattle`、`config`、`texts` |
 | `scenes/overlays/OverlayManager.js` | 浮层单例：`open` / `close` / `current`、遮罩与焦点、Esc 关闭 |
 | `main.js` | 组装根：注册三个场景工厂、创建 Shell / Manager / RunController / OverlayManager、启动首个场景 |
 
@@ -267,7 +267,7 @@ manager.onChange(({ from, to, params }) => {});     // 路由变化订阅
 | `map` | 浮层 `event` | `{ nodeId }` | `ctx.openOverlay('event', params)` |
 | `map` | 浮层 `chest` | `{ nodeId }` | `ctx.openOverlay('chest', params)` |
 | `map` | 浮层 `shop` | `{ nodeId }` | `ctx.openOverlay('shop', params)` |
-| `battle` | `map` | `{}` | 胜利先 `ctx.applyBattleResult`；Boss 完成时内部升层 |
+| `battle` | `map` | `{ nodeId }` | 胜利先 `ctx.applyBattleResult`；Boss 完成时内部升层 |
 | `battle` | `home` | — | 失败结算页点「返回首页」→ `ctx.abandonRun()` 清档 |
 | 任意场景 | 浮层 `inventory` | — | HUD 背包按钮 |
 | 任意场景 | 浮层 `skills` | — | HUD 头像 |
@@ -388,10 +388,10 @@ RunController（唯一计算方）
   ├ getStatsSnapshot()  → InventoryModal：maxHp / maxRage / attackPower
   └ getInventorySnapshot() → InventoryModal：装备、强化等级；SceneContext 注入 inBattle
 
-HudView 点击
-  ├ 背包 → ctx.openInventory()
-  ├ 头像 → ctx.openOverlay('skills')
-  └ 齿轮 → ctx.openOverlay('settings')
+HudView 点击（SceneShell 统一转发为 `ctx.openOverlay(id)`）
+  ├ 背包 → openOverlay('inventory')
+  ├ 头像 → openOverlay('skills')
+  └ 齿轮 → openOverlay('settings')
 ```
 
 - HUD 只渲染，不计算；杀气条战斗外固定满条，血量显示当前值。
@@ -429,14 +429,12 @@ SkillTreeModal 节点点击
 
 ```html
 <div class="scene-shell" data-scene="map">
-  <div class="scene-bg">
-    <img class="scene-bg__image" alt="" />
-    <div class="scene-bg__overlay"></div>
-  </div>
-  <div class="scene-hud"><!-- HudView 挂载点；home 隐藏 --></div>
-  <div class="scene-content"><!-- 场景内容 --></div>
-  <div class="overlay-layer"><!-- 浮层宿主：遮罩 + 面板 --></div>
-  <div class="scene-transition"></div>
+  <div class="scene-bg" data-scene-bg></div>
+  <div class="scene-bg__veil"></div>
+  <div class="scene-hud" data-scene-hud><!-- HudView 挂载点；home 隐藏 --></div>
+  <div class="scene-layer-host" data-scene-layer-host><!-- 每个场景一个 .scene-layer --></div>
+  <div class="overlay-host" data-overlay-host><!-- 浮层宿主：遮罩 + 面板 --></div>
+  <div class="scene-transition hidden" data-scene-transition><!-- Loading... --></div>
 </div>
 ```
 
@@ -459,7 +457,7 @@ SkillTreeModal 节点点击
 ### 6.3 规则
 
 - 背景路径属于数据，写在 `scenes.json`；裁切、遮罩、暗角属于 `styles/`。
-- 图片统一放 `assets/backgrounds/`，推荐 1920×1080，`object-fit: cover`。
+- 图片统一放 `assets/backgrounds/`，推荐 1920×1080，由 CSS `background-size: cover` 裁切。
 - 缺图时 `SceneShell` 保留背景层并显示 `[data-scene]` 对应的渐变兜底，不允许出现空白或报错。
 - 战斗场景背景统一取 `scenes.json` 的 `battle.background`；Boss 专属背景为预留能力，当前未实现。
 - 事件 / 宝箱 / 商店 / 背包 / 技能树 / 设置不注册 `scenes.json`，由 `OverlayManager` + `styles/modals.css` 统一渲染。
@@ -483,12 +481,12 @@ SkillTreeModal 节点点击
 | 类型 | 规则 | 示例 |
 |---|---|---|
 | 类 / 组件文件 | PascalCase | `SceneManager.js`、`MapScene.js` |
-| 工具 / 实例文件 | camelCase | `SceneContext.js` 内的工厂函数；类文件仍用 PascalCase |
-| 测试文件 | `*.test.js` | `map-generator.test.js` |
+| 工具 / 实例文件 | camelCase | `main.js`、`text.js`；工厂函数 `createMapScene` |
+| 测试文件 | `*.test.js` | `turn-order.test.js` |
 | CSS 文件 | kebab-case | `map.css` |
 | 配置字段 | camelCase | `rageCost`、`background` |
 | 配置 / 数据 id | snake_case | `sword_single`、`boss_01` |
-| 场景 id | camelCase | `home`、`map`、`battle` |
+| 场景 id | 小写单词 | `home`、`map`、`battle` |
 | 浮层 id | camelCase | `inventory`、`event`、`chest`、`shop`、`skills`、`settings` |
 | 浮层文件 | `<Name>Overlay.js` / `<Name>Modal.js` | `ShopOverlay.js`、`ShopModal.js` |
 | 背景图 | `<sceneId>_<variant>.jpg` | `home.jpg`、`battle_default.jpg` |
@@ -507,7 +505,8 @@ SkillTreeModal 节点点击
 npx serve . -l 5173        # 根目录启动静态服务器
 # 游戏：http://localhost:5173
 # 逻辑测试：http://localhost:5173/tests/index.html
-# 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1
+# 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1&seed=20261118
+# 路线图独立调试：http://localhost:5173/?scene=map&floor=1
 ```
 
 ## 11. 当前分工与开发顺序（摘要）

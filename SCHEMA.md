@@ -14,12 +14,12 @@
 | id | `snake_case`，全局唯一；跨文件引用使用 `xxxId` / `xxxIds` |
 | 字段名 | 配置字段 camelCase；`id` 的值 snake_case |
 | 数值 | 直接写 JSON number，不写字符串与单位 |
-| 精度 | 杀气、伤害最多 1 位小数；内部统一 `round1`，显示 `toFixed(1)` |
+| 精度 | 杀气、伤害最多 1 位小数；内部统一 `round1`。战斗与 meta 快照显示 `toFixed(1)`，HUD 血量按整数显示 |
 | 百分比 | 一律写小数（`0.08` 表示 8%），禁止写 `"8%"` |
 | 权重 | 非负整数，同一列表内相对比例，不要求和为 100 |
 | 时间 | 毫秒整数（`animDurationMs`、`hitAtMs`） |
 | 路径 | 相对项目根，正斜杠，如 `assets/gifs/player/player_idle.gif` |
-| 未知字段 | 校验器告警（不阻断）；类型错误与引用断裂报错并终止启动 |
+| 未知字段 | 当前不校验；类型错误与引用断裂报错并终止启动 |
 
 ## 2. `weapons.json`
 
@@ -688,9 +688,13 @@ for each switch 指令 in queue（按 seq 升序）:
 | `specialUses.shared` | boolean | 固定 `true` |
 | `specialUses.initial` | integer | 全局次数池初始值 |
 | `specialUses.refill` | `"none"` | 战斗内不恢复 |
+| `player.maxHp` | number | 玩家血量上限，新开局 `RunState.maxHp` 的初值 |
+| `player.maxRage` | number | 玩家杀气上限，每回合回满 |
+| `player.defaultLoadout.normalWeapons` / `.specialWeapons` | string[2] | 新开局默认装备，必须是已存在武器且类别匹配 |
 | `player.zeroRage.threshold` | number | 固定 `0`，判定 `<=` |
 | `player.zeroRage.refillPerTurn` | integer | 固定 `1` |
 | `boss.break.skipAllOps` | boolean | 破防回合跳过全部操作 |
+| `boss.break.refillAfterBreak` | boolean | 破防轮空结束后 Boss 杀气回满 |
 | `defense.rageCost` | number | 格挡消耗杀气，固定 `0` |
 | `defense.damageScale` | number | 格挡时受到伤害的乘数，取值 0 ~ 1 |
 | `defense.bossRageCutScale` | number | 格挡时 Boss 削减玩家杀气的乘数 |
@@ -722,33 +726,37 @@ for each switch 指令 in queue（按 seq 升序）:
   ],
   "defendKey": "defend",
   "switchKey": "switch",
-  "undoKey": "undo"
+  "undoKey": "undo",
+  "submitKey": "submit"
 }
 ```
 
-- `normalGroup` 的 `slot` 对应 `PanelState.baseOrder` 的下标（0 基），武器 id 由 `RunState` 装备决定，不写死在配置里。
+- `normalGroup` 的 `slot` 为 1 基装备位（1 / 2），与 `PanelState.activeSlot` 对应；当前面板只渲染手持武器那一组键位，武器 id 由 `RunState` 装备决定，不写死在配置里。
 - `specialGroup` 的 `weaponId` 必须指向 `category = "special"` 的武器。
 - `itemGroup` 的 `itemId = null` 时按钮渲染为禁用占位。
+- `defendKey` / `switchKey` / `undoKey` / `submitKey` 为独立功能键，所有键位必须非空且全局唯一。
 - 按钮映射变更只改此配置，UI 不得硬编码键位。
 
-## 8. 校验清单（Validator 必须覆盖）
+## 8. 校验清单（Validator 当前覆盖）
 
-1. `weapons[].attacks.special` 只允许出现在 `category = "normal"` 的武器上。
-2. 所有 `attack.id` 跨武器唯一。
-3. `specialGroup` 引用的武器必须存在且 `category = "special"`。
+1. `weapons[].attacks.special` 只允许出现在 `category = "normal"` 的武器上；`category` 只能是 `normal / special`。
+2. 所有 `attack.id` 跨武器唯一；`opType` 必须与所在键（`normal / special`）一致。
+3. `weapons.comboIds` 必须指向已存在的连招；武器攻击与 Boss 行为的 `effects[]` 必须存在于 `effects.json`。
 4. `phases[].hpRange` 互不重叠，并完整覆盖 `[0, maxHp]`。
-5. `phases[].actionWeights[].actionId` 必须存在于同一 Boss 的 `actions`。
-6. `phases[].opsPerTurn.min ≤ max`，且 `max ≤ 5`。
+5. `phases[].actionWeights[].actionId` 必须存在于同一 Boss 的 `actions`，权重为非负整数。
+6. `phases[].opsPerTurn` 满足 `1 ≤ min ≤ max ≤ 5`。
 7. `combo.pattern` 中玩家 token 只能是 `"normal"` / `"special"`；Boss token 必须是有效 actionId。
-8. `combo.weaponId` / `bossId` / `unlock.id` / `effects[]` 引用必须存在。
-9. `ResolvedStats` 所有数值 ≤ 1 位小数，且 `rageCost ≥ 0`。
-10. `PanelState.currentOrder` 必须能由 `baseOrder` + 队列中的 switch 指令推导得出。
-11. `map.rows ≥ 3`；`startType = "event"`；`bossType = "boss"`；`columns.min ≤ columns.max`。
-12. `map.nodeTypes[].id` 只能是 `battle / event / chest / shop / boss`，权重为非负整数且总和大于 0，必须包含 `battle`。
-13. `events[].choices` 固定 3 项；`effects[].kind` 只能是 `gold / hp / skillPoint / enhanceCount / item`，`itemId` / `enhanceCategory` 引用必须存在。
-14. `chests[].gif` 位于 `assets/chests/`；`rewards` 使用与事件相同的 Effect 结构。
-15. `shop.columns[].offers` 非空；`price` / `refresh.baseCost` / `costStep` 为非负整数；商品 `kind` 必须与栏位匹配。
-16. `skills` 有且仅有一个空前置的 `root` 节点且 `cost = 0`；`prerequisiteIds` 无环；`upgrades.enhancement.maxLevel` 与 `categories` 完整。
+8. `combo.weaponId` / `bossId` 在 `scope` 匹配时必须存在；`weaponId / bossId / unlock.id` 只校验非空字符串，`unlock.id` 的存在性本期不校验（升级树未落地）。
+9. 攻击的 `rageCost / damage / bossRageCut` 非负且最多 1 位小数；`effects.json` 只校验 `id` 唯一。
+10. `battle.config.json` 的 `turn / player / defense / switch / queue / specialUses / combo / panel / display` 字段类型与固定值；`player.defaultLoadout` 两把普通 + 两把特殊武器必须存在且类别匹配。
+11. `panel` 的全部键位（`normalGroup / specialGroup / itemGroup / defendKey / switchKey / undoKey / submitKey`）非空且全局唯一；`specialGroup` 引用特殊武器，`itemGroup.itemId` 为 `null` 或已存在物品。
+12. `map.rows ≥ 3`；`startType = "event"`；`bossType = "boss"`；`1 ≤ columns.min ≤ columns.max`。
+13. `map.nodeTypes[].id` 只能是 `battle / event / chest / shop / boss`，权重为非负整数且总和大于 0，必须包含 `battle`。
+14. `events[].choices` 固定 3 项；`effects[].kind` 只能是 `gold / hp / skillPoint / enhanceCount / item`，`itemId` / `enhanceCategory` 引用必须存在。
+15. `chests[].gif` 位于 `assets/chests/`；`rewards` 使用与事件相同的 Effect 结构。
+16. `shop.columns[].offers` 非空；`price` / `refresh.baseCost` / `refresh.costStep` 为非负整数；商品 `kind` 必须与栏位匹配（`weapons → weapon`、`items → item`、`enhance → enhance`），`enhance.amount ≥ 1`。
+17. `skills` 有且仅有一个空前置的根节点且 `cost = 0`；`prerequisiteIds` 必须存在、无自引用且无环；`upgrades.enhancement.maxLevel ≥ 1` 且 `categories[].id` 只能是 `normalWeapon / specialWeapon / item`。
+18. `scenes.scenes` 非空且 id 唯一、`background` 位于 `assets/backgrounds/`（不限制 id 枚举，运行时只注册 `home / map / battle`）；`ui.texts` 必须是非空对象。
 
 ## 9. 外层与全局系统契约
 
@@ -848,7 +856,7 @@ for each switch 指令 in queue（按 seq 升序）:
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `kind` | string | `gold` / `hp` / `skillPoint` / `enhanceCount` / `item` |
-| `value` | integer | 效果数值，金币与技能点不能为负 |
+| `value` | integer | 效果数值；`gold` / `skillPoint` 结果最低为 0，`hp` 结果最高为 `maxHp` |
 | `itemId` | string | 仅 `item`，必须存在于 `items.json` |
 | `enhanceCategory` | string | 仅 `enhanceCount`，必须存在于 `upgrades.enhancement.categories` |
 
@@ -931,7 +939,12 @@ for each switch 指令 in queue（按 seq 升序）:
 | `gold` | integer | 当前金币 |
 | `columns[].id` / `.titleKey` | string | 栏位信息 |
 | `columns[].refreshCount` / `.refreshCost` | integer | 已刷新次数与当前刷新价 |
-| `columns[].offers[]` | object | 商品模板字段 + `purchased` + `owned` |
+| `columns[].offers[]` | object | 商品模板字段 + `purchased` + `owned`（仅武器） |
+
+运行时接口：
+
+- `buyShopOffer(columnId, offerId)` → `{ ok, reason?, snapshot? }`；`reason` 为 `purchased / owned / gold`，未知商品直接抛错。
+- `refreshShopColumn(columnId)` → `{ ok, reason?, snapshot? }`；`reason` 为 `gold`，未知栏位直接抛错。
 
 约束：
 
@@ -978,7 +991,7 @@ for each switch 指令 in queue（按 seq 升序）:
 运行时接口：
 
 - `getSkillTreeSnapshot()` → `{ points, unlockedSkillIds, skills }`。
-- `unlockSkill(skillId)` → `{ ok, reason?, snapshot? }`，成功时扣点并存档。
+- `unlockSkill(skillId)` → `{ ok, reason?, missing?, snapshot? }`，成功时扣点并存档；`reason` 为 `owned / locked / points`，未知 id 直接抛错。
 
 ### 9.6 `upgrades.json.enhancement`
 
@@ -1004,6 +1017,7 @@ for each switch 指令 in queue（按 seq 升序）:
 | `categories[].initialCount` | integer | 新开局每类强化次数 |
 
 - 强化次数写入 `runState.enhanceCounts[category]`，等级写入 `runState.enhanceLevels[equipmentId]`。
+- `enhanceWeapon(weaponId)` → `{ ok, reason?, snapshot? }`；`reason` 为 `unknown / notOwned / max / count`，成功时返回最新 `InventorySnapshot`。
 - 每强化 1 级消耗 1 次对应类别次数，单件不超过 `maxLevel`。
 - 战斗中禁止强化与换装，UI 依据 `InventorySnapshot.inBattle` 置灰。
 - 武器异变 / 升级树本期不做，`upgrades.json` 仅保留 `enhancement` 段，不含升级树。
@@ -1067,12 +1081,12 @@ for each switch 指令 in queue（按 seq 升序）:
 | `savedAt` | integer | 写入时间戳 |
 | `seed` / `floor` / `floorSeed` | integer | 本局种子、楼层、本层种子 |
 | `nodeId` | string \| null | 当前节点 |
-| `player` | object | `RunState.toSavedData()` 输出 |
-| `map` | MapGraph \| null | 当前层地图，缺失时按种子重建 |
+| `player` | object | `RunState.toSavedData()` 输出（hp / maxHp / 武器 / 药品 / 金币 / 技能点 / 强化 等） |
+| `map` | MapGraph | 当前层地图，必填；缺失时 `SaveManager.migrate` 拒绝读取 |
 
 - 节点完成、战斗写回、事件 / 宝箱 / 商店 / 技能树 / 强化结算后立即写档。
 - 失败或主动放弃调用 `clear()` 删除存档；商店会话与开箱记录不写入。
-- `saveVersion` 高于客户端支持版本时拒绝读取并提示，不覆盖原存档。
+- `saveVersion` 高于客户端支持版本时拒绝读取；`main.js` 捕获后 `console.warn` 并按无存档启动，不覆盖原存档。
 
 ## 10. 版本策略
 
