@@ -39,7 +39,7 @@
 - `bosses.phases[].actionWeights[].actionId` 必须存在于同 Boss 的 `actions`。
 - `bosses.reward` / `dropPoolId` 为预留字段，`drops.json` 未落地，当前 `bosses.json` 不写该字段，`Validator` 不校验掉落引用。
 - `combos.weaponId` / `bossId` 必须存在。
-- `scenes.scenes[*].id` 只能是 `home` / `map` / `battle`；`background` 必须是 `assets/backgrounds/` 下的相对路径；文件缺失时由样式兜底，但键不得缺失。
+- `scenes.scenes[*].id` 必须非空且唯一；`background` 必须是 `assets/backgrounds/` 下的相对路径；文件缺失时由样式兜底，但键不得缺失。`Validator` 不限制 id 枚举，运行时只注册 `home / map / battle`。
 - `map.nodeTypes[].id` 必须属于 `battle / event / chest / shop / boss`；权重为非负整数且总和大于 0，必须包含 `battle`。
 - `events[].choices[].effects[]` 使用 `{ kind, value, itemId?, enhanceCategory? }`；`kind` 只能是 `gold / hp / skillPoint / enhanceCount / item`，`itemId` / `enhanceCategory` 必须存在；选项数量固定为 3，`image` 必须在 `assets/events/` 下。
 - `chests[].rewards[]` 使用与事件相同的 Effect 结构；`gif` 必须是 `assets/chests/` 下的相对路径。
@@ -51,9 +51,11 @@
 
 ## 4. 加成模型与结算顺序
 
+当前 `StatsCalculator` 只汇总基础值：`maxHp`、`maxRage`（取 `battle.config.json`）、`attackPower`（四把已装备武器普攻伤害之和）、`gold`、`skillPoints`。装备强化、技能树、饰品与 Buff 尚未参与属性计算，以下命名与顺序为后续接入前的预留契约。
+
 - 战斗统计字段（stat）统一命名：`damagePercent`、`damageFlat`、`comboRageCutPercent`、`rageCutFlat`、`defensePercent`、`damagePercentAfterBlock`。
 - 外层属性字段统一命名：`maxHpFlat`、`maxRageFlat`、`attackPowerFlat`、`attackPowerPercent`、`healPercent`、`goldPercent`。
-- 战斗结算顺序固定为：
+- 战斗结算顺序（预留）：
   1. 基础值（武器快照）
   2. 装备强化
   3. 升级树（预留）
@@ -62,7 +64,7 @@
   6. Buff / Debuff
   7. 连招
   8. `round1`
-- 外层属性结算顺序固定为：基础值 → 装备强化 → 技能树 → 饰品（预留）→ `round1`。
+- 当前实际只实现基础值与连招；外层属性结算顺序（预留）为：基础值 → 装备强化 → 技能树 → 饰品（预留）→ `round1`。
 - percent 类加成为加法叠加，最后统一乘算一次；避免逐层四舍五入。
 - HUD 只展示 meta 计算后的结果，禁止 UI 二次叠加。
 
@@ -81,7 +83,7 @@
 | `floorSeed` | integer | 当前层地图种子，升层时重算 |
 | `nodeId` | string \| null | 当前所在节点 |
 | `player` | object | `RunState.toSavedData()` 输出 |
-| `map` | MapGraph \| null | 当前层地图，缺失时按种子重建 |
+| `map` | MapGraph | 当前层地图，必填；缺失时 `SaveManager.migrate` 拒绝读取 |
 
 `player`（`runState`）字段：
 
@@ -101,18 +103,20 @@
 
 约束：
 
-- `battleState`：`battleId`、`bossId`、`scaling`、回合数、阶段、玩家/ Boss 运行时、意图、Boss 游标、Buff。
+- `battleState`：`bossId`、`bossName`、`turn`、`phase`、`phaseId`、`scaling`、`player` / `boss` 运行时、`specialUses`、`intent`、`panelOrder`、`specialOrder`、`switchCooldownRemaining`、`buffs`、`result`。
 - 两棵树必须分离；`battleState` 可整体丢弃而不影响 `runState`。
 - 场景参数只用于当次跳转，不写入存档；场景结果由 `RunController` 合并进 `runState` 后再存档。
 - 商店购买记录、每栏刷新次数属于当次会话状态，不写入存档；关闭商店即丢弃。
 - 节点完成、升层、失败清理后必须立即写档。
-- 存档写入前做一次 `round1` 归一化；金币与次数保持整数。
+- `player` 的 `hp / maxHp / normalWeapons / specialWeapons / items` 为必填，缺失或类型错误时 `RunState.hydrate` 直接抛错；其余字段缺省时补安全初始值。
+- `RunState.toSavedData()` 直接输出当前数值，不再额外做 `round1` 归一化；金币与次数保持整数。
 
 ## 6. 存档迁移
 
-- 新增字段必须提升 `saveVersion`，并写迁移函数补齐安全初始值（`0`、空数组、空对象）。
-- 迁移只做结构补齐，不改变既有数值语义；无法识别的高版本存档直接拒绝读取并提示。
-- 删除或重命名 `runState` 字段必须同时提升 `schemaVersion`，并同步更新 `SCHEMA.md`。
+- 改变 `SaveRecord` 顶层结构必须提升 `saveVersion`，并写迁移函数补齐安全初始值（`0`、空数组、空对象）。
+- `player` 内新增可选字段可保持版本，由 `RunState.hydrate` 补默认值（`gold` / `skillPoints` / `unlockedSkillIds` / `ownedWeaponIds` / `enhanceCounts` / `enhanceLevels`）。
+- 迁移只做结构补齐，不改变既有数值语义；无法识别的高版本存档直接拒绝读取，`main.js` 捕获后 `console.warn` 并按无存档启动，不覆盖原存档。
+- 删除或重命名 `player` 字段必须同时提升 `schemaVersion`，并同步更新 `SCHEMA.md`。
 - 战斗失败或主动放弃：删除存档并重置 `RunState`，不得留下半局残留。
 
 ## 7. 禁止事项

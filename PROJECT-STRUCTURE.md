@@ -10,7 +10,7 @@ d:\AICode\
 ├─ index.html                        # 唯一页面入口，加载 src/main.js（type="module"）
 ├─ AGENTS.md                         # AI 协作说明
 ├─ PROJECT-STRUCTURE.md              # 本文件：目录、路由、数据流
-├─ SCHEMA.md                         # 武器 / Boss / 操作序列字段契约
+├─ SCHEMA.md                         # 战斗 + 外层 + 快照的唯一字段契约
 ├─ .trae/
 │  └─ rules/
 │     ├─ project_rules.md            # 范围 / 分层 / 契约 / 风格
@@ -36,7 +36,7 @@ d:\AICode\
 
 > `accessories.json`、`soulforge.json`、`drops.json`、`levels.json` 本期未落地，不在 `ConfigLoader` 加载列表内。
 
-├─ assets/                           # 目前仅玩家 GIF 已落地，其余为占位路径
+├─ assets/                           # 目前仅 assets/gifs/player/ 已落地，其余目录暂未创建
 │  ├─ backgrounds/                   # 场景背景图（home / map / battle，暂缺）
 │  ├─ events/                        # 事件配图（暂缺）
 │  ├─ chests/                        # 宝箱合盖图与开箱 GIF（暂缺）
@@ -136,15 +136,15 @@ d:\AICode\
 │     └─ deepClone.js
 │
 └─ tests/                            # 浏览器内纯逻辑测试（当前平铺）
-   ├─ index.html                     # 入口（4 号位维护）
-   ├─ runner.js                      # 断言器（4 号位维护）
-   ├─ engine.test.js                 # 战斗结算 / 门面
-   ├─ combo.test.js                  # 连招
-   ├─ rage.test.js                   # 杀气与破防
-   ├─ panel.test.js                  # 面板 / 切换 / 撤回
-   ├─ turn-order.test.js             # 回合顺序
-   └─ config-validation.test.js      # 配置校验
-   # 预留：按 game / meta / data / ui 二级目录拆分后，再按协作规则下放写入权
+   ├─ index.html                     # 入口（2 号位维护）
+   ├─ runner.js                      # 断言器（2 号位维护）
+   ├─ engine.test.js                 # 战斗结算 / 门面（1 号位）
+   ├─ combo.test.js                  # 连招（1 号位）
+   ├─ rage.test.js                   # 杀气与破防（1 号位）
+   ├─ panel.test.js                  # 面板 / 切换 / 撤回（1 号位）
+   ├─ turn-order.test.js             # 回合顺序（1 号位）
+   └─ config-validation.test.js      # 配置校验（4 号位）
+   # 预留：按 game / meta / ui / data 拆分后，写入权分别为 1 / 2 / 2 / 4 号位
 ```
 
 ## 2. 目录职责与边界
@@ -199,7 +199,7 @@ game              → 无反向依赖
 |---|---|
 | `meta/SceneManager.js` | 路由状态机：当前场景、切换、参数、返回栈、生命周期调用；不创建 DOM |
 | `scenes/SceneShell.js` | 渲染宿主：背景层、HUD 挂载点、内容容器、转场遮罩、浮层宿主、`data-scene` 标记 |
-| `meta/SceneContext.js` | 场景能力集合：`navigate`、`getRunSnapshot`、`getHudSnapshot`、`openOverlay`、`openInventory`、`config`、`texts` |
+| `meta/SceneContext.js` | 场景能力集合：`navigate` / `back` / `current` / `onChange`、`hasRun` / `startRun` / `abandonRun`、各快照（run / hud / stats / inventory / map / event / chest / shop / skillTree）、事件 / 宝箱 / 商店 / 技能树 / 强化意图、`getBattleInput` / `applyBattleResult` / `completeNode`、`openOverlay` / `openInventory` / `closeOverlay` / `closeInventory`、`createBattle`、`config`、`texts` |
 | `scenes/overlays/OverlayManager.js` | 浮层单例：`open` / `close` / `current`、遮罩与焦点、Esc 关闭 |
 | `main.js` | 组装根：注册三个场景工厂、创建 Shell / Manager / RunController / OverlayManager、启动首个场景 |
 
@@ -267,7 +267,7 @@ manager.onChange(({ from, to, params }) => {});     // 路由变化订阅
 | `map` | 浮层 `event` | `{ nodeId }` | `ctx.openOverlay('event', params)` |
 | `map` | 浮层 `chest` | `{ nodeId }` | `ctx.openOverlay('chest', params)` |
 | `map` | 浮层 `shop` | `{ nodeId }` | `ctx.openOverlay('shop', params)` |
-| `battle` | `map` | `{}` | 胜利先 `ctx.applyBattleResult`；Boss 完成时内部升层 |
+| `battle` | `map` | `{ nodeId }` | 胜利先 `ctx.applyBattleResult`；Boss 完成时内部升层 |
 | `battle` | `home` | — | 失败结算页点「返回首页」→ `ctx.abandonRun()` 清档 |
 | 任意场景 | 浮层 `inventory` | — | HUD 背包按钮 |
 | 任意场景 | 浮层 `skills` | — | HUD 头像 |
@@ -388,10 +388,10 @@ RunController（唯一计算方）
   ├ getStatsSnapshot()  → InventoryModal：maxHp / maxRage / attackPower
   └ getInventorySnapshot() → InventoryModal：装备、强化等级；SceneContext 注入 inBattle
 
-HudView 点击
-  ├ 背包 → ctx.openInventory()
-  ├ 头像 → ctx.openOverlay('skills')
-  └ 齿轮 → ctx.openOverlay('settings')
+HudView 点击（SceneShell 统一转发为 `ctx.openOverlay(id)`）
+  ├ 背包 → openOverlay('inventory')
+  ├ 头像 → openOverlay('skills')
+  └ 齿轮 → openOverlay('settings')
 ```
 
 - HUD 只渲染，不计算；杀气条战斗外固定满条，血量显示当前值。
@@ -429,14 +429,12 @@ SkillTreeModal 节点点击
 
 ```html
 <div class="scene-shell" data-scene="map">
-  <div class="scene-bg">
-    <img class="scene-bg__image" alt="" />
-    <div class="scene-bg__overlay"></div>
-  </div>
-  <div class="scene-hud"><!-- HudView 挂载点；home 隐藏 --></div>
-  <div class="scene-content"><!-- 场景内容 --></div>
-  <div class="overlay-layer"><!-- 浮层宿主：遮罩 + 面板 --></div>
-  <div class="scene-transition"></div>
+  <div class="scene-bg" data-scene-bg></div>
+  <div class="scene-bg__veil"></div>
+  <div class="scene-hud" data-scene-hud><!-- HudView 挂载点；home 隐藏 --></div>
+  <div class="scene-layer-host" data-scene-layer-host><!-- 每个场景一个 .scene-layer --></div>
+  <div class="overlay-host" data-overlay-host><!-- 浮层宿主：遮罩 + 面板 --></div>
+  <div class="scene-transition hidden" data-scene-transition><!-- Loading... --></div>
 </div>
 ```
 
@@ -459,7 +457,7 @@ SkillTreeModal 节点点击
 ### 6.3 规则
 
 - 背景路径属于数据，写在 `scenes.json`；裁切、遮罩、暗角属于 `styles/`。
-- 图片统一放 `assets/backgrounds/`，推荐 1920×1080，`object-fit: cover`。
+- 图片统一放 `assets/backgrounds/`，推荐 1920×1080，由 CSS `background-size: cover` 裁切。
 - 缺图时 `SceneShell` 保留背景层并显示 `[data-scene]` 对应的渐变兜底，不允许出现空白或报错。
 - 战斗场景背景统一取 `scenes.json` 的 `battle.background`；Boss 专属背景为预留能力，当前未实现。
 - 事件 / 宝箱 / 商店 / 背包 / 技能树 / 设置不注册 `scenes.json`，由 `OverlayManager` + `styles/modals.css` 统一渲染。
@@ -471,24 +469,24 @@ SkillTreeModal 节点点击
 
 | 成员 | 物理目录 / 文件 |
 |---|---|
-| 1 号位 | `src/game/`、`src/state/`、`tests/` 中的战斗用例 |
-| 2 号位 | `src/ui/`（含 `hud/`、`modals/`）、`src/styles/`、`assets/`、`tests/` 中的 UI 用例 |
-| 3 号位 | `src/meta/`、`src/scenes/`（含 `overlays/`）、`src/data/`、`src/main.js`、`index.html`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/` 中的 meta 用例 |
-| 4 号位 | `config/`、`SCHEMA.md`、`data_rules.md`、`tests/runner.js`、`tests/index.html`、配置校验用例 |
+| 1 号位 | `src/game/`、`src/scenes/BattleScene.js`、战斗 UI 组件（`BattleView / SequenceBar / ActionPanel / StatusBars / BuffBar / FeedbackLayer / Tooltip / InventoryView / bridge / anim`）、`src/styles/battle.css`、`src/state/BattleState.js`、`assets/gifs/{player,bosses}/`、`combat_rules.md`、战斗用例 |
+| 2 号位 | `src/meta/`、`src/scenes/`（除 `BattleScene.js`，含 `overlays/`）、`src/ui/{hud,modals,map}/`、`src/styles/`（除 `battle.css`）、`src/state/{RunState,SaveManager}.js`、`src/data/`、`src/main.js`、`index.html`、`assets/{backgrounds,ui,skills,icons,audio}/`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/runner.js`、`tests/index.html`、meta 与 UI 用例 |
+| 3 号位 | `config/events.json`、`config/chests.json`、`config/shop.json`、`config/items.json`、`assets/{events,chests}/` |
+| 4 号位 | `config/` 其余文件、`SCHEMA.md`、`data_rules.md`、`config-validation` 用例与 `tests/data/` |
 
-> `tests/` 目前为平铺结构；二级目录（`game / meta / data / ui`）为规划目标，拆分后按协作规则下放写入权。
+> `tests/` 目前为平铺结构；后续按 `game / meta / ui / data` 拆分后，写入权分别为 1 号、2 号、2 号、4 号。
 
 ## 8. 文件命名约定
 
 | 类型 | 规则 | 示例 |
 |---|---|---|
 | 类 / 组件文件 | PascalCase | `SceneManager.js`、`MapScene.js` |
-| 工具 / 实例文件 | camelCase | `SceneContext.js` 内的工厂函数；类文件仍用 PascalCase |
-| 测试文件 | `*.test.js` | `map-generator.test.js` |
+| 工具 / 实例文件 | camelCase | `main.js`、`text.js`；工厂函数 `createMapScene` |
+| 测试文件 | `*.test.js` | `turn-order.test.js` |
 | CSS 文件 | kebab-case | `map.css` |
 | 配置字段 | camelCase | `rageCost`、`background` |
 | 配置 / 数据 id | snake_case | `sword_single`、`boss_01` |
-| 场景 id | camelCase | `home`、`map`、`battle` |
+| 场景 id | 小写单词 | `home`、`map`、`battle` |
 | 浮层 id | camelCase | `inventory`、`event`、`chest`、`shop`、`skills`、`settings` |
 | 浮层文件 | `<Name>Overlay.js` / `<Name>Modal.js` | `ShopOverlay.js`、`ShopModal.js` |
 | 背景图 | `<sceneId>_<variant>.jpg` | `home.jpg`、`battle_default.jpg` |
@@ -507,19 +505,20 @@ SkillTreeModal 节点点击
 npx serve . -l 5173        # 根目录启动静态服务器
 # 游戏：http://localhost:5173
 # 逻辑测试：http://localhost:5173/tests/index.html
-# 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1
+# 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1&seed=20261118
+# 路线图独立调试：http://localhost:5173/?scene=map&floor=1
 ```
 
-## 11. 外围系统开发顺序（摘要）
+## 11. 当前分工与开发顺序（摘要）
 
 | 阶段 | 负责人 | 内容 | 验收 |
 |---|---|---|---|
-| P0（已完成） | 3 号 | `SceneManager`、`SceneShell`、`Loading...` 转场、基础场景空壳、全局背包浮层 | 场景可切换，无控制台报错 |
-| P1（已完成） | 4 号 | `SCHEMA.md` 补外层契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整 |
-| P2（已完成） | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载与显隐；删除 event / chest 场景 | 六个浮层可开可关，无残留计时器 |
-| P3（已完成） | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/hud.css`、`styles/modals.css` | 桌面与窄屏可用，数值全部来自快照 |
-| P4 地基（已完成） | 3 号 | `RunController` 新字段与意图、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档、`SaveManager` 存档与恢复 | 一局可走到 Boss，失败回首页，刷新后可续 |
-| P4 收尾（进行中） | 3 号 | 独立 Resolver 拆分、商店会话与强化细节补全、存档边界回归 | 无内联重复结算逻辑，回归全绿 |
-| P5 内容、平衡与联调 | 全员 | 内容填充、数值平衡、正式资源、回归测试与部署 | 测试全绿，无占位假逻辑 |
+| P0~P4 地基（已完成） | 历史分工 | 场景收敛、契约与最小配置、浮层、HUD、一局闭环、存档 | 已完成 |
+| P4 收尾（进行中） | 2 号位 | 独立 Resolver 拆分、商店会话与强化补全、存档边界回归 | 无内联重复结算逻辑 |
+| 战斗打磨（进行中） | 1 号位 | 战斗规则与表现、战斗测试 | 战斗用例全绿，无 DOM / 硬编码数值 |
+| 外围与地图（进行中） | 2 号位 | 非战斗场景 UI、浮层、`MapGenerator`、HUD、存档 | 全流程可用，无控制台报错 |
+| 内容填充（进行中） | 3 号位 | 事件、宝箱、商店、道具内容 | Validator 通过，无占位假逻辑 |
+| 数值与契约（持续） | 4 号位 | `SCHEMA.md`、数值平衡、校验规则 | 校验全绿，临时数值全部定稿 |
+| 发布前联调 | 2 号位集成，全员参与 | 回归测试、正式资源、部署 | 测试全绿，发布说明完成 |
 
 详细排期、接口冻结与 AI 使用边界见 `.trae/rules/collaboration_rules.md`。
