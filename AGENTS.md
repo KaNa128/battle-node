@@ -117,4 +117,4 @@ python -m http.server 5173
 
 - Boss 攻击伤害为占位值（普攻 6 / 特殊 10），用户可随时调整。
 - 美术资源：玩家 GIF（待机 / 攻击 / 受击，含无背景版）已接入；Boss 立绘、图标、场景背景、事件配图、宝箱 GIF、技能图标与音频仍使用占位路径与缺省样式，不阻塞逻辑开发。
-- `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json` 已有可支撑一局的最小配置，内容仍需 4 号位扩充。
+- `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`、`upgrades.json` 已有最小配置；事件 / 宝箱 / 商店 / 道具内容由 3 号位扩充，数值由 4 号位定稿。

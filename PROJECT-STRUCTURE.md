@@ -136,15 +136,15 @@ d:\AICode\
 │     └─ deepClone.js
 │
 └─ tests/                            # 浏览器内纯逻辑测试（当前平铺）
-   ├─ index.html                     # 入口（4 号位维护）
-   ├─ runner.js                      # 断言器（4 号位维护）
-   ├─ engine.test.js                 # 战斗结算 / 门面
-   ├─ combo.test.js                  # 连招
-   ├─ rage.test.js                   # 杀气与破防
-   ├─ panel.test.js                  # 面板 / 切换 / 撤回
-   ├─ turn-order.test.js             # 回合顺序
-   └─ config-validation.test.js      # 配置校验
-   # 预留：按 game / meta / data / ui 二级目录拆分后，再按协作规则下放写入权
+   ├─ index.html                     # 入口（2 号位维护）
+   ├─ runner.js                      # 断言器（2 号位维护）
+   ├─ engine.test.js                 # 战斗结算 / 门面（1 号位）
+   ├─ combo.test.js                  # 连招（1 号位）
+   ├─ rage.test.js                   # 杀气与破防（1 号位）
+   ├─ panel.test.js                  # 面板 / 切换 / 撤回（1 号位）
+   ├─ turn-order.test.js             # 回合顺序（1 号位）
+   └─ config-validation.test.js      # 配置校验（4 号位）
+   # 预留：按 game / meta / ui / data 拆分后，写入权分别为 1 / 2 / 2 / 4 号位
 ```
 
 ## 2. 目录职责与边界
@@ -471,12 +471,12 @@ SkillTreeModal 节点点击
 
 | 成员 | 物理目录 / 文件 |
 |---|---|
-| 1 号位 | `src/game/`、`src/state/`、`tests/` 中的战斗用例 |
-| 2 号位 | `src/ui/`（含 `hud/`、`modals/`）、`src/styles/`、`assets/`、`tests/` 中的 UI 用例 |
-| 3 号位 | `src/meta/`、`src/scenes/`（含 `overlays/`）、`src/data/`、`src/main.js`、`index.html`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/` 中的 meta 用例 |
-| 4 号位 | `config/`、`SCHEMA.md`、`data_rules.md`、`tests/runner.js`、`tests/index.html`、配置校验用例 |
+| 1 号位 | `src/game/`、`src/scenes/BattleScene.js`、战斗 UI 组件（`BattleView / SequenceBar / ActionPanel / StatusBars / BuffBar / FeedbackLayer / Tooltip / InventoryView / bridge / anim`）、`src/styles/battle.css`、`src/state/BattleState.js`、`assets/gifs/{player,bosses}/`、`combat_rules.md`、战斗用例 |
+| 2 号位 | `src/meta/`、`src/scenes/`（除 `BattleScene.js`，含 `overlays/`）、`src/ui/{hud,modals,map}/`、`src/styles/`（除 `battle.css`）、`src/state/{RunState,SaveManager}.js`、`src/data/`、`src/main.js`、`index.html`、`assets/{backgrounds,ui,skills,icons,audio}/`、`AGENTS.md`、`PROJECT-STRUCTURE.md`、`project_rules.md`、`collaboration_rules.md`、`tests/runner.js`、`tests/index.html`、meta 与 UI 用例 |
+| 3 号位 | `config/events.json`、`config/chests.json`、`config/shop.json`、`config/items.json`、`assets/{events,chests}/` |
+| 4 号位 | `config/` 其余文件、`SCHEMA.md`、`data_rules.md`、`config-validation` 用例与 `tests/data/` |
 
-> `tests/` 目前为平铺结构；二级目录（`game / meta / data / ui`）为规划目标，拆分后按协作规则下放写入权。
+> `tests/` 目前为平铺结构；后续按 `game / meta / ui / data` 拆分后，写入权分别为 1 号、2 号、2 号、4 号。
 
 ## 8. 文件命名约定
 
@@ -510,16 +510,16 @@ npx serve . -l 5173        # 根目录启动静态服务器
 # 战斗场景独立调试：http://localhost:5173/?scene=battle&boss=boss_01&floor=1
 ```
 
-## 11. 外围系统开发顺序（摘要）
+## 11. 当前分工与开发顺序（摘要）
 
 | 阶段 | 负责人 | 内容 | 验收 |
 |---|---|---|---|
-| P0（已完成） | 3 号 | `SceneManager`、`SceneShell`、`Loading...` 转场、基础场景空壳、全局背包浮层 | 场景可切换，无控制台报错 |
-| P1（已完成） | 4 号 | `SCHEMA.md` 补外层契约；`scenes.json` 收敛为 3 个场景；新增 `map.json`、`events.json`、`chests.json`、`shop.json`、`skills.json`；`upgrades.json.enhancement` | Validator 全绿，引用完整 |
-| P2（已完成） | 3 号 | 场景收敛为 home / map / battle；`OverlayManager` 与六个浮层容器；HUD 挂载与显隐；删除 event / chest 场景 | 六个浮层可开可关，无残留计时器 |
-| P3（已完成） | 2 号 | `HudView`、背包三栏、事件 / 宝箱 / 商店 / 技能树 / 设置视觉；`styles/hud.css`、`styles/modals.css` | 桌面与窄屏可用，数值全部来自快照 |
-| P4 地基（已完成） | 3 号 | `RunController` 新字段与意图、`MapGenerator`、事件 / 宝箱 / 商店 / 技能树结算、战斗回写、Boss 升层、失败清档、`SaveManager` 存档与恢复 | 一局可走到 Boss，失败回首页，刷新后可续 |
-| P4 收尾（进行中） | 3 号 | 独立 Resolver 拆分、商店会话与强化细节补全、存档边界回归 | 无内联重复结算逻辑，回归全绿 |
-| P5 内容、平衡与联调 | 全员 | 内容填充、数值平衡、正式资源、回归测试与部署 | 测试全绿，无占位假逻辑 |
+| P0~P4 地基（已完成） | 历史分工 | 场景收敛、契约与最小配置、浮层、HUD、一局闭环、存档 | 已完成 |
+| P4 收尾（进行中） | 2 号位 | 独立 Resolver 拆分、商店会话与强化补全、存档边界回归 | 无内联重复结算逻辑 |
+| 战斗打磨（进行中） | 1 号位 | 战斗规则与表现、战斗测试 | 战斗用例全绿，无 DOM / 硬编码数值 |
+| 外围与地图（进行中） | 2 号位 | 非战斗场景 UI、浮层、`MapGenerator`、HUD、存档 | 全流程可用，无控制台报错 |
+| 内容填充（进行中） | 3 号位 | 事件、宝箱、商店、道具内容 | Validator 通过，无占位假逻辑 |
+| 数值与契约（持续） | 4 号位 | `SCHEMA.md`、数值平衡、校验规则 | 校验全绿，临时数值全部定稿 |
+| 发布前联调 | 2 号位集成，全员参与 | 回归测试、正式资源、部署 | 测试全绿，发布说明完成 |
 
 详细排期、接口冻结与 AI 使用边界见 `.trae/rules/collaboration_rules.md`。
