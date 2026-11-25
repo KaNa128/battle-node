@@ -353,12 +353,92 @@
   color: var(--gold-soft);
 }
 
+/* 技能树左侧放树，右侧留空白常年显示详情，避免悬停时遮挡节点。 */
+.skills-modal__board {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .skills-modal__grid {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(var(--skill-cols, 3), minmax(0, 1fr));
   grid-template-rows: repeat(var(--skill-rows, 4), auto);
-  gap: 14px 10px;
+  /* 行距留够余量，节点上下偏移后仍不会贴在一起。 */
+  gap: 34px 10px;
   padding: 8px 0;
+}
+
+.skills-modal__detail {
+  flex: 0 0 216px;
+  min-height: 138px;
+  padding: 12px 14px;
+  border: 1px solid rgba(214, 168, 92, 0.16);
+  border-radius: 12px;
+  background: rgba(20, 16, 13, 0.4);
+  color: var(--ink-muted);
+}
+
+/* 没有悬停时只保留占位空间，框体本身隐藏，避免出现空面板。 */
+.skills-modal__detail:empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.skills-detail__name {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+}
+
+.skills-detail__meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.skills-detail__desc {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* 前置关系连线：铺在卡片下层，端点裁到卡片边框。 */
+.skills-modal__links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.skills-link {
+  stroke: rgba(214, 168, 92, 0.22);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.skills-link--purple {
+  stroke: rgba(167, 120, 220, 0.32);
+}
+
+.skills-link--cyan {
+  stroke: rgba(99, 194, 178, 0.32);
+}
+
+.skills-link--red {
+  stroke: rgba(201, 85, 63, 0.34);
+}
+
+/* 已点亮的技能，其前置连线提亮，和金色主色调保持一致。 */
+.skills-link.is-lit {
+  stroke: rgba(214, 168, 92, 0.72);
+  stroke-width: 2;
 }
 
 .skills-modal__cell {
@@ -366,37 +446,32 @@
   place-items: center;
 }
 
+/* 技能点只保留圆形与名字，详情统一放到右侧留白。 */
 .skill-node {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  max-width: 190px;
-  min-height: 84px;
-  padding: 10px 12px;
+  display: grid;
+  place-items: center;
+  width: clamp(66px, 7vw, 82px);
+  aspect-ratio: 1;
+  padding: 6px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 50%;
   background: rgba(20, 16, 13, 0.66);
   color: var(--ink-dim);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
 .skill-node strong {
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
 }
 
-.skill-node__meta {
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-
-.skill-node__desc {
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--ink-muted);
+.skill-node:hover,
+.skill-node:focus-visible {
+  border-color: rgba(240, 204, 140, 0.85);
+  box-shadow: 0 0 0 2px rgba(214, 168, 92, 0.14);
 }
 
 .skill-node--root {
@@ -425,7 +500,7 @@
   opacity: 0.5;
 }
 
-.skill-node:disabled {
+.skill-node[aria-disabled='true'] {
   cursor: not-allowed;
 }
 
@@ -630,6 +705,16 @@
   .shop-modal__columns,
   .inventory-modal {
     grid-template-columns: 1fr;
+  }
+
+  .skills-modal__board {
+    flex-direction: column;
+  }
+
+  .skills-modal__detail {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 84px;
   }
 
   .skills-modal__grid {

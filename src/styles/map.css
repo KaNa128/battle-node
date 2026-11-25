@@ -1,4 +1,4 @@
-/* 路线图：自下而上的节点分叉，节点只负责展示与点击意图。 */
+/* 路线图：树状棋盘（.map-board），节点绝对定位、SVG 连线。 */
 
 .map-scene {
   position: relative;
@@ -6,9 +6,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-height: 100vh;
-  padding: 96px 16px 32px;
+  padding: 84px 6px 24px;
 }
 
 .map-scene__head {
@@ -17,47 +17,56 @@
 
 .map-scene__title {
   margin: 0;
-  font-size: 26px;
+  font-size: 22px;
   letter-spacing: 0.24em;
   color: var(--gold-soft);
 }
 
 .map-scene__subtitle {
-  margin: 6px 0 0;
-  font-size: 12px;
+  margin: 4px 0 0;
+  font-size: 11px;
   letter-spacing: 0.16em;
   color: var(--ink-muted);
 }
 
 .map-scene__hint {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-muted);
 }
 
 .map-scene__board {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  width: min(720px, 100%);
-  margin: 6px 0;
+  width: min(1080px, 98vw);
+  margin: 2px 0;
 }
 
-.map-scene__row {
+/* 新版棋盘：绝对定位节点 + SVG 连线；宽度固定、高度随视口拉长，避免左右大留白。 */
+.map-board {
   position: relative;
-  display: flex;
-  justify-content: center;
-  gap: clamp(18px, 8vw, 64px);
+  display: block;
+  width: 100%;
+  height: clamp(680px, 100vh, 1200px);
+  margin: 0 auto;
 }
 
-.map-scene__row:not(:last-child)::after {
-  content: "";
+.map-board__lines {
   position: absolute;
-  left: 50%;
-  bottom: -22px;
-  width: 1px;
-  height: 22px;
-  background: linear-gradient(180deg, var(--line-strong), transparent);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.map-board__line {
+  stroke: rgba(214, 168, 92, 0.24);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.map-board__line.is-live {
+  stroke: rgba(214, 168, 92, 0.75);
+  stroke-width: 2;
 }
 
 .map-node {
@@ -74,6 +83,24 @@
   letter-spacing: 0;
   cursor: default;
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+/* 新版布局下节点按棋盘比例缩放并居中到坐标点。 */
+.map-board .map-node {
+  position: absolute;
+  height: auto;
+  aspect-ratio: 1;
+  width: clamp(38px, 4.8vw, 44px);
+  font-size: clamp(12px, 1.5vw, 14px);
+  transform: translate(-50%, -50%);
+}
+
+.map-node--circle {
+  border-radius: 50%;
+}
+
+.map-node--square {
+  border-radius: 10px;
 }
 
 .map-node:disabled {
@@ -93,6 +120,11 @@
   outline: none;
 }
 
+.map-board .map-node.is-available:hover,
+.map-board .map-node.is-available:focus-visible {
+  transform: translate(-50%, calc(-50% - 2px));
+}
+
 .map-node--battle .map-node__glyph {
   color: var(--red);
 }
@@ -104,9 +136,17 @@
   border-color: var(--red);
 }
 
+.map-board .map-node--boss {
+  width: clamp(42px, 5.6vw, 50px);
+}
+
 .map-node--boss .map-node__glyph {
   color: var(--red);
   font-size: 22px;
+}
+
+.map-board .map-node--boss .map-node__glyph {
+  font-size: clamp(15px, 2vw, 18px);
 }
 
 .map-node--event .map-node__glyph {
@@ -131,16 +171,18 @@
 
 .map-node__badge {
   position: absolute;
-  bottom: -18px;
-  padding: 1px 8px;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px;
   border-radius: 999px;
   background: rgba(20, 16, 13, 0.9);
   border: 1px solid var(--line);
   color: var(--jade);
-  font-size: 10px;
+  font-size: 9px;
   white-space: nowrap;
 }
 
 .map-scene__footer {
-  margin-top: 8px;
+  margin-top: 4px;
 }

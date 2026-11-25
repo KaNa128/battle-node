@@ -1,4 +1,5 @@
 // 路线图生成：纯函数 + 注入种子。自下而上分叉，底部固定起始事件，顶部唯一 Boss。
+// 相邻行按连续区间连线，保证任意两条边不交叉；节点数由配置决定。
 // 输出结构写入 RunState，当层内固定不变；重进路线图只读快照。
 
 import { Rng } from '../game/Rng.js';
@@ -31,27 +32,10 @@ export function generateMap({ floor, seed, config }) {
     rows.push(rowNodes);
   }
 
-  // 相邻两行按归一化列位置就近连线：每个节点出度 1~2，且保证每个节点都有入边。
+  // 相邻两行按连续区间分配连线：源节点从左到右只连向不交叉的目标区间，
+  // 同时保证每个目标都有入边、每个源都有出边。
   for (let row = 0; row < totalRows - 1; row += 1) {
-    const current = rows[row];
-    const next = rows[row + 1];
-
-    current.forEach((node, index) => {
-      const ratio = current.length === 1 ? 0.5 : index / (current.length - 1);
-      const center = Math.round(ratio * (next.length - 1));
-      const candidates = [center, center - 1, center + 1]
-        .filter((value, i, list) => value >= 0 && value < next.length && list.indexOf(value) === i)
-        .slice(0, rng.int(1, 2));
-      node.nextIds = candidates.map((i) => next[i].id);
-    });
-
-    for (const target of next) {
-      const hasIncoming = current.some((node) => node.nextIds.includes(target.id));
-      if (hasIncoming) continue;
-      const ratio = next.length === 1 ? 0.5 : target.col / (next.length - 1);
-      const nearestIndex = Math.round(ratio * (current.length - 1));
-      current[nearestIndex].nextIds.push(target.id);
-    }
+    connectRows(rows[row], rows[row + 1]);
   }
 
   return {
@@ -61,4 +45,22 @@ export function generateMap({ floor, seed, config }) {
     nodes,
     completedNodeIds: [],
   };
+}
+
+// 把目标行切成若干连续区间，源节点 i 连接 [start, end]。
+// 区间随源下标单调不减，因此所有边从下往上都不会交叉。
+function connectRows(sources, targets) {
+  const sourceCount = sources.length;
+  const targetCount = targets.length;
+  if (sourceCount === 0 || targetCount === 0) return;
+
+  for (let i = 0; i < sourceCount; i += 1) {
+    const start = Math.floor((i * targetCount) / sourceCount);
+    const end = Math.ceil(((i + 1) * targetCount) / sourceCount) - 1;
+    const from = Math.max(0, Math.min(targetCount - 1, start));
+    const to = Math.max(from, Math.min(targetCount - 1, end));
+    for (let k = from; k <= to; k += 1) {
+      sources[i].nextIds.push(targets[k].id);
+    }
+  }
 }

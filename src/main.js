@@ -42,7 +42,9 @@ async function boot() {
     validateConfig(config);
 
     const query = new URLSearchParams(window.location.search);
-    const seed = Number(query.get('seed')) || 20261118;
+    const querySeed = Number(query.get('seed'));
+    const debugSeed = Number.isInteger(querySeed) && querySeed > 0 ? querySeed : undefined;
+    const seed = debugSeed ?? 20261118;
     const floor = Math.max(1, Number(query.get('floor')) || 1);
     const transitionMs = config.scenes.transition?.durationMs ?? 320;
     const texts = config.ui.texts;
@@ -106,7 +108,7 @@ async function boot() {
     // 调试入口：?scene=battle 直接进战斗，?scene=map 直接进路线图。
     const requested = query.get('scene');
     if (requested === 'battle' || requested === 'map') {
-      if (!runController.hasRun()) runController.startRun({ floor });
+      if (!runController.hasRun()) runController.startRun({ floor, seed: debugSeed });
     }
 
     await manager.start(requested ?? 'home', {

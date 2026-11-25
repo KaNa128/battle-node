@@ -18,6 +18,7 @@ export class RunController {
   constructor({ config, seed = 20261118, saveManager = null }) {
     this.config = config;
     this.seed = seed;
+    this.seedNonce = 0;
     this.saveManager = saveManager;
     this.floor = 1;
     this.floorSeed = seedFromString(`${seed}:1`);
@@ -29,7 +30,13 @@ export class RunController {
   }
 
   startRun({ seed, floor = 1 } = {}) {
-    if (seed !== undefined) this.seed = seed;
+    // 未指定种子时按时间随机，并用自增序号避免同一毫秒内连开两局拿到相同种子。
+    if (seed !== undefined) {
+      this.seed = seed;
+    } else {
+      this.seedNonce = (this.seedNonce + 1) >>> 0;
+      this.seed = (Date.now() + this.seedNonce) >>> 0;
+    }
     this.floor = Math.max(1, floor);
     this.floorSeed = seedFromString(`${this.seed}:${this.floor}`);
     this.nodeId = null;
